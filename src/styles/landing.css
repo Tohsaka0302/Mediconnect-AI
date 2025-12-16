@@ -1,0 +1,101 @@
+.landing-container {
+  font-family: Arial, sans-serif;
+  padding: 2rem;
+  text-align: center;
+  background-color: #f3f9ff;
+  min-height: 100vh;
+}
+
+.landing-header {
+  margin-bottom: 2rem;
+}
+
+.landing-header h1 {
+  font-size: 3rem;
+  color: #2c3e50;
+}
+
+.landing-header p {
+  font-size: 1.2rem;
+  color: #555;
+}
+
+.landing-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.landing-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin: 1rem;
+  width: 80%;
+  max-width: 500px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+.landing-buttons {
+  margin-top: 2rem;
+}
+
+.landing-buttons button {
+  margin: 0 1rem;
+  padding: 0.75rem 1.5rem;
+  background-color: #0077cc;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.landing-buttons button:hover {
+  background-color: #005fa3;
+}
+
+
+.aiinsight-container {
+  max-width: 700px;
+  margin: 3rem auto;
+  padding: 2rem;
+  background: #f9fbfd;
+  border-radius: 10px;
+  box-shadow: 0 0 12px rgba(0,0,0,0.08);
+  text-align: center;
+  font-family: Arial, sans-serif;
+}
+
+textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 1rem;
+  margin-top: 1rem;
+  font-size: 1rem;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  resize: vertical;
+}
+
+button {
+  margin-top: 1rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  background-color: #0077cc;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #005fa3;
+}
+
+.ai-response {
+  margin-top: 2rem;
+  background: white;
+  padding: 1rem;
+  border-left: 5px solid #0077cc;
+  text-align: left;
+}

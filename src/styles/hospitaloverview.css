@@ -1,0 +1,38 @@
+.overview-container {
+  padding: 2rem;
+  font-family: Arial, sans-serif;
+  background-color: #f4f7fb;
+  min-height: 100vh;
+}
+
+.overview-container h1 {
+  text-align: center;
+  margin-bottom: 2rem;
+  color: #2c3e50;
+}
+
+.overview-table {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  border-collapse: collapse;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  background-color: white;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.overview-table th, .overview-table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.overview-table th {
+  background-color: #0077cc;
+  color: white;
+}
+
+.overview-table tr:hover {
+  background-color: #eef6ff;
+}

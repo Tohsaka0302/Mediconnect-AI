@@ -1,0 +1,45 @@
+.user-dropdown {
+  position: relative;
+  cursor: pointer;
+}
+
+.user-role {
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  padding: 10px 0;
+  list-style: none;
+  margin: 0;
+  min-width: 120px;
+  display: none;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  border-radius: 4px;
+  z-index: 100;
+}
+
+.user-dropdown:hover .dropdown-menu {
+  display: block;
+}
+
+.dropdown-menu li {
+  padding: 8px 16px;
+}
+
+.dropdown-menu li button {
+  all: unset;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  width: 100%;
+}
+
+.dropdown-menu li button:hover {
+  background-color: #f0f0f0;
+}
