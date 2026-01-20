@@ -1,1 +1,7 @@
-node_modules
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+.env
+.DS_Store
+>>>>>>> 7a974beb420de52748d838789b65066c5add90b8

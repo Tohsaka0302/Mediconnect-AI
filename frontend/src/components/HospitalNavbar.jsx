@@ -7,7 +7,7 @@ const HospitalNavbar = () => {
   return (
     <nav className="navbar">
       <div className="navbar-logo">Hospital A</div>
-      <ul className="navbar-links">a
+      <ul className="navbar-links">
         <li><Link to="/hospitals/dashboard">Dashboard</Link></li>
         <li><Link to="/hospitals/patient-list">Patients</Link></li>
         <li><Link to="/hospitals/share-data">Share Data</Link></li>

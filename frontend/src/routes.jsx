@@ -1,6 +1,6 @@
 // src/routes.jsx
 import React from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes, Navigate } from 'react-router-dom';
 import Dashboard from './hospitals/Dashboard';
 import PatientList from './hospitals/PatientList';
 import ShareData from './hospitals/ShareData';
@@ -16,6 +16,7 @@ const RoutesComponent = () => {
   return (
     <>
       <Routes>
+        <Route path="/" element={<Navigate to="/mediconnectai/landing" replace />} />
         <Route path="/mediconnectai/landing" element={<Landing />} />
         <Route path="/hospitals/dashboard" element={<Dashboard />} />
         <Route path="/hospitals/patient-list" element={<PatientList />} />
@@ -23,10 +24,9 @@ const RoutesComponent = () => {
         <Route path="/hospitals/patient/:id" element={<PatientDetail />} />   {}
         <Route path="/mediconnectai/insights" element={<Insights />} />
         <Route path="/mediconnectai/login" element={<Login />} />
-        <Route path="/mediconnectai/hospital-overview" element={<HospitalOverview />} />
+        <Route path="/mediconnectai/hospital-overview" element={<RequireRole allowedRoles={['admin']}> <HospitalOverview /> </RequireRole>}/>
         <Route path="/mediconnectai/shared-patient-directory" element={<SharedPatientDirectory />} />
         <Route path="/mediconnectai/patient/:id" element={<PatientDetail />} />
-        <Route path="/mediconnectai/hospital-overview" element={<RequireRole allowedRoles={['admin']}> <HospitalOverview /> </RequireRole>}/>
       </Routes>
     </>
   );
