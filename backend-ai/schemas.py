@@ -10,7 +10,4 @@ class PatientCreate(PatientBase):
     pass
 
 class Patient(PatientBase):
-    id: int
-
-    class Config:
-        orm_mode = True
+    id: str

@@ -1,8 +1,11 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List, Optional
+from routers import patients
 
 app = FastAPI()
+
+app.include_router(patients.router)
 
 # Pydantic model for input validation [cite: 261]
 class SymptomInput(BaseModel):
