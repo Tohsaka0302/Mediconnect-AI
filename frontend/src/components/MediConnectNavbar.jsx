@@ -28,7 +28,10 @@ const MediConnectNavbar = () => {
 
         {/* Admin Only */}
         {user?.role === 'admin' && (
-          <li><Link to="/mediconnectai/hospital-overview">Hospital Overview</Link></li>
+          <>
+            <li><Link to="/mediconnectai/hospital-overview">Hospital Overview</Link></li>
+            <li><Link to="/mediconnectai/manage-analyst">Manage Analyst</Link></li>
+          </>
         )}
         
         {/* Login / Logout */}

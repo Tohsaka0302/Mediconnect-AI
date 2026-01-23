@@ -9,6 +9,7 @@ import Landing from './mediconnectai/Landing';
 import Insights from './mediconnectai/Insights';
 import Login from './mediconnectai/Login';
 import HospitalOverview from './mediconnectai/HospitalOverview';
+import ManageAnalyst from './mediconnectai/ManageAnalyst';
 import SharedPatientDirectory from './mediconnectai/SharedPatientDirectory';
 import RequireRole from './auth/RequireRole';
 
@@ -26,6 +27,7 @@ const RoutesComponent = () => {
         <Route path="/mediconnectai/login" element={<Login />} />
         <Route path="/mediconnectai/hospital-overview" element={<RequireRole allowedRoles={['admin']}> <HospitalOverview /> </RequireRole>}/>
         <Route path="/mediconnectai/shared-patient-directory" element={<SharedPatientDirectory />} />
+        <Route path="/mediconnectai/manage-analyst" element={<RequireRole allowedRoles={['admin']}> <ManageAnalyst /> </RequireRole>}/>
         <Route path="/mediconnectai/patient/:id" element={<PatientDetail />} />
       </Routes>
     </>

@@ -2,12 +2,6 @@ import React, { useState } from 'react';
 import '../styles/login.css';
 import { useNavigate } from 'react-router-dom';
 
-
-const mockUsers = [
-  { email: 'admin@ai.com', password: 'admin123', role: 'admin' },
-  { email: 'analyst@ai.com', password: 'analyst123', role: 'analyst' },
-];
-
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -15,21 +9,37 @@ const Login = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleLogin = () => {
-    const user = mockUsers.find(
-      (u) => u.email === email && u.password === password && u.role === role
-    );
+  const handleLogin = async () => {
+    setError(''); // Clear previous errors
 
-    if (user) {
-      localStorage.setItem('user', JSON.stringify(user));
+    try {
+      // 1. Send data to your FastAPI backend
+      const response = await fetch('http://localhost:8000/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password, role }),
+      });
 
-      if (role === 'admin') {
-        navigate('/mediconnectai/hospital-overview');
+      const data = await response.json();
+
+      if (response.ok) {
+        // 2. Success: Save user data and redirect
+        localStorage.setItem('user', JSON.stringify(data));
+
+        if (data.role === 'admin') {
+          navigate('/mediconnectai/hospital-overview');
+        } else {
+          navigate('/mediconnectai/insights');
+        }
       } else {
-        navigate('/mediconnectai/insights');
+        // 3. Fail: Show the error message from Python
+        setError(data.detail || 'Login failed');
       }
-    } else {
-      setError('Invalid credentials or role mismatch.');
+    } catch (err) {
+      console.error(err);
+      setError('Server error. Is the backend running?');
     }
   };
 
