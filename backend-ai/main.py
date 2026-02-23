@@ -26,6 +26,20 @@ app.include_router(analysts.router, prefix="/api")
 app.include_router(users.router, prefix="/api")
 app.include_router(auth.router, prefix="/api")  # This will now work
 
+@app.on_event("startup")
+def startup_db_client():
+    import database
+    from passlib.context import CryptContext
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    users_collection = database.db["users"]
+    
+    default_users = [
+        {"email": "admin@ai.com", "password": pwd_context.hash("admin123"), "role": "admin", "name": "Admin"},
+    ]
+    for default in default_users:
+        if not users_collection.find_one({"email": default["email"]}):
+            users_collection.insert_one(default)
+
 # Pydantic model for input validation
 class SymptomInput(BaseModel):
     patient_id: int

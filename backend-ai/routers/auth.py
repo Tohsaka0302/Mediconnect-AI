@@ -20,11 +20,11 @@ async def login(request: LoginRequest):
 
     # 2. Check if user exists
     if not user:
-        raise HTTPException(status_code=400, detail="Invalid Credentials")
+        raise HTTPException(status_code=400, detail="No user found")
 
     # 3. Verify the password (compare input vs stored hash)
     if not pwd_context.verify(request.password, user["password"]):
-        raise HTTPException(status_code=400, detail="Invalid Credentials")
+        raise HTTPException(status_code=400, detail="Wrong password or email")
 
     # 4. Check if the role matches
     if user.get("role") != request.role:
