@@ -1,50 +1,98 @@
 .dashboard {
   padding: 40px;
-  font-family: Arial, sans-serif;
-  background-color: #f2f5f9;
-  min-height: 100vh;
+  background-color: var(--bg-dark);
+  min-height: calc(100vh - 80px);
+  position: relative;
+  z-index: 1;
 }
 
-h1 {
-  color: #2a4d69;
+.dashboard h1 {
+  color: var(--text-main);
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+/* Subtle background flair */
+.dashboard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 50vw;
+  height: 50vw;
+  background: radial-gradient(circle, var(--accent-secondary) 0%, transparent 50%);
+  opacity: 0.05;
+  filter: blur(80px);
+  z-index: -1;
+  pointer-events: none;
 }
 
 .stats {
   display: flex;
-  gap: 20px;
+  flex-wrap: wrap;
+  gap: 24px;
   margin-top: 30px;
 }
 
 .stat-card {
-  background-color: white;
-  padding: 20px;
-  border-radius: 8px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  padding: 24px;
+  border-radius: 16px;
   flex: 1;
-  box-shadow: 0 1px 5px rgba(0,0,0,0.1);
+  min-width: 250px;
+  box-shadow: var(--glass-shadow);
   text-align: center;
+  transition: transform var(--transition-med), box-shadow var(--transition-med);
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.stat-card h3 {
+  color: var(--text-muted);
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 15px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .stat-card h2 {
-  color: #4caf50;
-  font-size: 36px;
+  color: var(--accent-secondary);
+  font-size: 42px;
+  font-weight: 800;
+  margin: 0;
+  text-shadow: 0 0 20px rgba(41, 196, 219, 0.3);
 }
 
 .dashboard-buttons {
-  margin-top: 30px;
+  margin-top: 40px;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
 .dashboard-buttons button {
-  margin-right: 15px;
-  padding: 12px 20px;
+  padding: 12px 24px;
   font-size: 16px;
+  font-weight: 600;
   border: none;
-  background-color: #2a4d69;
+  background: var(--gradient-primary);
   color: white;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: all var(--transition-fast);
+  box-shadow: 0 4px 15px rgba(118, 75, 255, 0.2);
 }
 
 .dashboard-buttons button:hover {
-  background-color: #1e3650;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(118, 75, 255, 0.4);
 }

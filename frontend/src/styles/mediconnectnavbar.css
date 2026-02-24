@@ -1,45 +1,131 @@
+/* Glassmorphism Navbar */
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--glass-border);
+  padding: 16px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all var(--transition-med);
+}
+
+.navbar-logo {
+  font-size: 24px;
+  font-weight: 800;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.5px;
+}
+
+.navbar-links {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  margin: 0;
+}
+
+.navbar-links li a {
+  color: var(--text-main);
+  font-weight: 500;
+  font-size: 16px;
+  position: relative;
+  padding: 8px 0;
+}
+
+/* Underline hover effect */
+.navbar-links li a::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 2px;
+  bottom: 0;
+  left: 50%;
+  background: var(--accent-primary);
+  transition: all var(--transition-fast);
+  transform: translateX(-50%);
+}
+
+.navbar-links li a:hover {
+  color: white;
+}
+
+.navbar-links li a:hover::after {
+  width: 100%;
+}
+
+/* User Dropdown */
 .user-dropdown {
   position: relative;
   cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--glass-border);
+  transition: all var(--transition-fast);
+}
+
+.user-dropdown:hover {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 15px rgba(142, 68, 2ad, 0.2);
 }
 
 .user-role {
-  color: white;
-  font-size: 16px;
-  font-weight: bold;
+  color: var(--accent-secondary);
+  font-size: 15px;
+  font-weight: 600;
+  text-transform: capitalize;
 }
 
 .dropdown-menu {
   position: absolute;
-  top: 100%;
+  top: calc(100% + 10px);
   right: 0;
-  background: white;
-  padding: 10px 0;
+  background: var(--bg-card);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(12px);
+  padding: 8px 0;
   list-style: none;
   margin: 0;
-  min-width: 120px;
-  display: none;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-  border-radius: 4px;
+  min-width: 160px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all var(--transition-fast);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  border-radius: 8px;
   z-index: 100;
 }
 
 .user-dropdown:hover .dropdown-menu {
-  display: block;
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
 }
 
 .dropdown-menu li {
-  padding: 8px 16px;
+  padding: 0;
 }
 
 .dropdown-menu li button {
   all: unset;
+  box-sizing: border-box;
   font-size: 14px;
-  color: #333;
+  color: var(--text-main);
   cursor: pointer;
   width: 100%;
+  padding: 10px 16px;
+  transition: all var(--transition-fast);
 }
 
 .dropdown-menu li button:hover {
-  background-color: #f0f0f0;
+  background-color: var(--bg-card-hover);
+  color: var(--accent-primary);
+  padding-left: 20px;
 }

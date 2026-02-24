@@ -45,7 +45,8 @@ async def get_users():
     
     # Ensure default users exist
     default_users = [
-        {"email": "admin@ai.com", "password": pwd_context.hash("admin123"), "role": "admin", "name": "Admin"},]
+        {"email": "admin@ai.com", "password": pwd_context.hash("admin123"), "role": "admin", "name": "Admin"}
+    ]
     for default in default_users:
         if not any(u["email"] == default["email"] for u in users):
             users_collection.insert_one(default.copy())

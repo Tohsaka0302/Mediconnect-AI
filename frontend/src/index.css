@@ -1,0 +1,143 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  /* Core Dark Theme Colors */
+  --bg-dark: hsl(230, 25%, 10%);       /* Very deep violet/charcoal */
+  --bg-darker: hsl(230, 25%, 7%);      /* Even darker for contrast */
+  --bg-card: hsl(230, 22%, 15%);       /* Card backgrounds */
+  --bg-card-hover: hsl(230, 22%, 18%); /* Card hover state */
+  
+  /* Text Colors */
+  --text-main: hsl(230, 20%, 90%);     /* Off-white */
+  --text-muted: hsl(230, 15%, 70%);    /* Subtitle/muted text */
+  --text-dark: hsl(230, 20%, 15%);     /* For text on light elements if needed */
+
+  /* Vibrant Accent Colors */
+  --accent-primary: hsl(250, 90%, 65%);   /* Brilliant electric purple/blue */
+  --accent-primary-hover: hsl(250, 90%, 70%);
+  --accent-secondary: hsl(190, 90%, 55%); /* Neon cyan/teal */
+  --accent-danger: hsl(340, 80%, 60%);    /* Vibrant Red */
+  --accent-success: hsl(150, 80%, 45%);   /* Emerald Green */
+
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  --gradient-glow: linear-gradient(135deg, rgba(142, 68, 2ad, 0.4), rgba(41, 196, 219, 0.4));
+  
+  /* Glassmorphism */
+  --glass-bg: rgba(30, 31, 41, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+
+  /* Transitions */
+  --transition-fast: 0.2s ease;
+  --transition-med: 0.3s ease-in-out;
+  --transition-slow: 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* Global Reset & Base Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Outfit', sans-serif;
+}
+
+body {
+  background-color: var(--bg-dark);
+  color: var(--text-main);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar Styling for a premium feel */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-dark); 
+}
+::-webkit-scrollbar-thumb {
+  background: var(--bg-card); 
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-primary); 
+}
+
+/* Common Text Styles */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-main);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+a {
+  color: var(--accent-secondary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--accent-primary);
+}
+
+/* Shared utility classes for glassy cards */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  border-radius: 16px;
+}
+
+/* Premium Primary Button */
+.btn-primary {
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-med);
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(135deg, var(--accent-secondary), var(--accent-primary));
+  z-index: -1;
+  transition: opacity var(--transition-med);
+  opacity: 0;
+}
+
+.btn-primary:hover::before {
+  opacity: 1;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(118, 75, 255, 0.4);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text-main);
+  border: 1px solid var(--glass-border);
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-secondary:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--accent-primary);
+}

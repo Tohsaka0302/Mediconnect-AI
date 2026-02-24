@@ -2,41 +2,92 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
-  background-color: #eef1f5;
+  min-height: 100vh;
+  background: var(--bg-dark);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Background animated glow */
+.login-container::before {
+  content: '';
+  position: absolute;
+  width: 60vw;
+  height: 60vw;
+  background: radial-gradient(circle, var(--accent-primary) 0%, transparent 60%);
+  opacity: 0.15;
+  filter: blur(80px);
+  z-index: 0;
+  border-radius: 50%;
+  animation: float 15s infinite alternate;
 }
 
 .login-box {
-  background: white;
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   padding: 40px;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  width: 320px;
+  border-radius: 20px;
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  width: 100%;
+  max-width: 400px;
+  z-index: 1;
+  position: relative;
 }
 
 .login-box h2 {
-  margin-bottom: 20px;
+  margin-bottom: 30px;
   text-align: center;
+  font-size: 28px;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 700;
 }
 
 .login-box input,
 .login-box select {
   width: 100%;
-  margin-bottom: 15px;
-  padding: 10px;
-  font-size: 14px;
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  font-size: 15px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  color: var(--text-main);
+  transition: all var(--transition-fast);
+  box-sizing: border-box;
+}
+
+.login-box input:focus,
+.login-box select:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(142, 68, 2ad, 0.2);
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.login-box select option {
+  background: var(--bg-card);
+  color: var(--text-main);
 }
 
 .login-box button {
   width: 100%;
-  padding: 10px;
-  background-color: #2a4d69;
+  padding: 14px;
+  background: var(--gradient-primary);
   color: white;
   border: none;
   font-size: 16px;
+  font-weight: 600;
+  border-radius: 10px;
   cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  margin-top: 10px;
 }
 
 .login-box button:hover {
-  background-color: #1e3650;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(118, 75, 255, 0.4);
 }

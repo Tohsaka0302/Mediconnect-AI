@@ -1,126 +1,161 @@
-
 .analyst-container {
-  padding: 2rem;
-  font-family: Arial, sans-serif;
-  background-color: #f4f7fb;
-  min-height: 100vh;
+  padding: 40px;
+  background-color: var(--bg-dark);
+  min-height: calc(100vh - 80px);
   display: flex;
   flex-direction: column;
   align-items: center;
+  position: relative;
+  z-index: 1;
 }
 
 .analyst-container h1 {
   text-align: center;
-  margin-bottom: 2rem;
-  color: #2c3e50;
+  margin-bottom: 40px;
+  color: var(--text-main);
+  font-size: 32px;
+  font-weight: 700;
 }
-
 
 .content-wrapper {
   display: flex;
-  gap: 2rem;
+  gap: 30px;
   width: 100%;
   max-width: 1200px;
   justify-content: center;
-  align-items: flex-start; 
-  flex-wrap: wrap; 
+  align-items: flex-start;
+  flex-wrap: wrap;
 }
 
 .analyst-form {
-  background: white;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: var(--glass-shadow);
   width: 100%;
-  max-width: 350px; 
+  max-width: 380px;
 }
 
 .analyst-form h3 {
   margin-top: 0;
-  color: #0077cc;
-  margin-bottom: 1.5rem;
+  color: var(--accent-secondary);
+  margin-bottom: 24px;
   text-align: center;
+  font-size: 22px;
 }
 
-.analyst-form input, 
+.analyst-form input,
 .analyst-form select {
   width: 100%;
-  padding: 12px;
-  margin-bottom: 1rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  box-sizing: border-box; 
-  font-size: 14px;
+  padding: 14px;
+  margin-bottom: 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  color: var(--text-main);
+  font-size: 15px;
+  transition: all var(--transition-fast);
 }
 
-.analyst-form input:focus, 
+.analyst-form input:focus,
 .analyst-form select:focus {
-  border-color: #0077cc;
   outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(142, 68, 2ad, 0.2);
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.analyst-form select option {
+  background: var(--bg-card);
+  color: var(--text-main);
 }
 
 .analyst-form button {
   width: 100%;
-  padding: 12px;
-  background-color: #0077cc;
+  padding: 14px;
+  background: var(--gradient-primary);
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
   cursor: pointer;
-  font-weight: bold;
-  font-size: 1rem;
-  transition: background 0.2s;
+  font-weight: 600;
+  font-size: 16px;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  margin-top: 10px;
 }
 
 .analyst-form button:hover {
-  background-color: #005fa3;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(118, 75, 255, 0.4);
 }
 
-
+/* Table styling for Manage Analyst */
 .table-container {
-  flex: 1; 
-  min-width: 300px;
-  overflow-x: auto; 
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  flex: 1;
+  min-width: 350px;
+  overflow-x: auto;
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 16px;
+  box-shadow: var(--glass-shadow);
+  border: 1px solid var(--glass-border);
 }
 
 .analyst-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
-.analyst-table th, 
+.analyst-table th,
 .analyst-table td {
-  padding: 1rem;
+  padding: 16px 20px;
   text-align: left;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid var(--glass-border);
+  color: var(--text-main);
   vertical-align: middle;
 }
 
 .analyst-table th {
-  background-color: #0077cc;
-  color: white;
-  white-space: nowrap; 
+  background: rgba(0, 0, 0, 0.4);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 14px;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+.analyst-table tr:last-child td {
+  border-bottom: none;
+}
+
+.analyst-table tr {
+  transition: background var(--transition-fast);
 }
 
 .analyst-table tr:hover {
-  background-color: #f1f8ff;
+  background: rgba(255, 255, 255, 0.05);
 }
 
-
 .delete-btn {
-  background-color: #ff4d4d;
-  color: white;
-  border: none;
-  padding: 5px 12px;
-  border-radius: 5px;
+  background: rgba(255, 77, 77, 0.15);
+  color: var(--accent-danger);
+  border: 1px solid rgba(255, 77, 77, 0.3);
+  padding: 8px 16px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 0.9rem;
-  transition: background 0.2s;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all var(--transition-fast);
 }
 
 .delete-btn:hover {
-  background-color: #cc0000;
+  background: var(--accent-danger);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(255, 77, 77, 0.4);
 }

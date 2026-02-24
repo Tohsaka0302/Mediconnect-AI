@@ -49,7 +49,6 @@ const MediConnectNavbar = () => {
         <div className="navbar-logo">MediConnectAI</div>
         <ul className="navbar-links">
           {/* Always show */}
-          <li><Link to="/hospitals/dashboard">Hospital System</Link></li>
           <li><Link to="/mediconnectai/landing">Home</Link></li>
 
           {/* Analyst or Admin */}
@@ -65,6 +64,7 @@ const MediConnectNavbar = () => {
             <>
               <li><Link to="/mediconnectai/hospital-overview">Hospital Overview</Link></li>
               <li><Link to="/mediconnectai/manage-analyst">Manage Analyst</Link></li>
+              <li><Link to="/mediconnectai/removal-requests">Removal Requests</Link></li>
             </>
           )}
 

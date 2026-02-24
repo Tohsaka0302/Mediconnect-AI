@@ -1,34 +1,55 @@
 .shared-directory-container {
-  padding: 2rem;
-  font-family: Arial, sans-serif;
-  background-color: #f6f9fc;
-  min-height: 100vh;
+  padding: 40px;
+  background-color: var(--bg-dark);
+  min-height: calc(100vh - 80px);
+  position: relative;
+  z-index: 1;
 }
 
 .shared-directory-container h1 {
-  margin-bottom: 1.5rem;
-  color: #2c3e50;
+  margin-bottom: 30px;
+  color: var(--text-main);
+  font-size: 32px;
+  font-weight: 700;
 }
 
 .patient-table {
   width: 100%;
-  border-collapse: collapse;
-  background-color: white;
-  box-shadow: 0 0 10px rgba(0,0,0,0.05);
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--glass-shadow);
+  border: 1px solid var(--glass-border);
 }
 
 .patient-table th,
 .patient-table td {
-  padding: 1rem;
+  padding: 16px 20px;
   text-align: left;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid var(--glass-border);
+  color: var(--text-main);
 }
 
 .patient-table th {
-  background-color: #0077cc;
-  color: white;
+  background: rgba(0, 0, 0, 0.4);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 14px;
+  letter-spacing: 1px;
+}
+
+.patient-table tr:last-child td {
+  border-bottom: none;
+}
+
+.patient-table tr {
+  transition: background var(--transition-fast);
 }
 
 .patient-table tr:hover {
-  background-color: #eef6fc;
+  background: rgba(255, 255, 255, 0.05);
 }
