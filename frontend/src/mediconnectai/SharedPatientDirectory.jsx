@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import '../styles/spd.css';
 import { Link } from 'react-router-dom';
+import { authFetch } from '../utils/authFetch';
 
 // Maps specialty names to colors for visual pills
 const SPECIALTY_COLORS = {
@@ -53,7 +54,7 @@ const SharedPatientDirectory = () => {
         // If analyst, also fetch their profile to display specialties
         if (user?.role === 'analyst') {
           try {
-            const profileRes = await fetch(
+            const profileRes = await authFetch(
               `http://localhost:8000/api/analysts/by-email/${encodeURIComponent(user.email)}`
             );
             if (profileRes.ok) {

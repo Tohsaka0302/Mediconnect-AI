@@ -2,10 +2,10 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 import database
 from passlib.context import CryptContext
+from jwt_utils import create_access_token
 
 router = APIRouter()
 
-# Setup password hashing (must match your analyst file)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 class LoginRequest(BaseModel):
@@ -22,7 +22,7 @@ async def login(request: LoginRequest):
     if not user:
         raise HTTPException(status_code=400, detail="No user found")
 
-    # 3. Verify the password (compare input vs stored hash)
+    # 3. Verify the password
     if not pwd_context.verify(request.password, user["password"]):
         raise HTTPException(status_code=400, detail="Wrong password or email")
 
@@ -30,8 +30,12 @@ async def login(request: LoginRequest):
     if user.get("role") != request.role:
         raise HTTPException(status_code=400, detail="Role mismatch")
 
-    # 5. Return success (and user info for the frontend to store)
+    # 5. Create JWT token
+    token = create_access_token({"sub": user["email"], "role": user["role"]})
+
+    # 6. Return token + user info (frontend stores both)
     return {
+        "token": token,
         "email": user["email"],
         "name": user["name"],
         "role": user["role"]

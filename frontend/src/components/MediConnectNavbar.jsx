@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import '../styles/mediconnectnavbar.css';
+import { authFetch } from '../utils/authFetch';
 
 const MediConnectNavbar = () => {
   const user = JSON.parse(localStorage.getItem('user'));
@@ -21,9 +22,8 @@ const MediConnectNavbar = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:8000/api/users/change-password', {
+      const response = await authFetch('http://localhost:8000/api/users/change-password', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: user.email,
           old_password: passwords.oldPassword,

@@ -10,22 +10,18 @@ const Login = () => {
   const navigate = useNavigate();
 
   const handleLogin = async () => {
-    setError(''); // Clear previous errors
-
+    setError('');
     try {
-      // 1. Send data to your FastAPI backend
       const response = await fetch('http://localhost:8000/api/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, role }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        // 2. Success: Save user data and redirect
+        // Store full response including JWT token
         localStorage.setItem('user', JSON.stringify(data));
 
         if (data.role === 'admin') {
@@ -34,7 +30,6 @@ const Login = () => {
           window.location.href = '/mediconnectai/shared-patient-directory';
         }
       } else {
-        // 3. Fail: Show the error message from Python
         setError(data.detail || 'Login failed');
       }
     } catch (err) {

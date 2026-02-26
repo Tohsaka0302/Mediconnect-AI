@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import '../styles/manageanalyst.css';
+import { authFetch } from '../utils/authFetch';
 
 const ManageAnalyst = () => {
     const [analysts, setAnalysts] = useState([]);
@@ -19,7 +20,7 @@ const ManageAnalyst = () => {
     const fetchAnalysts = useCallback(async () => {
         try {
             const [analystRes, statsRes] = await Promise.all([
-                fetch('/api/analysts'),
+                authFetch('/api/analysts'),
                 fetch('http://localhost:5000/api/analyst-stats')
             ]);
             if (!analystRes.ok) throw new Error('Failed to fetch analysts');
@@ -44,7 +45,7 @@ const ManageAnalyst = () => {
     const addAnalyst = async (e) => {
         e.preventDefault();
         try {
-            const response = await fetch('/api/analysts', {
+            const response = await authFetch('/api/analysts', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newAnalyst)
@@ -60,7 +61,7 @@ const ManageAnalyst = () => {
     const deleteAnalyst = async (id) => {
         if (!window.confirm('Are you sure you want to delete this analyst?')) return;
         try {
-            await fetch(`/api/analysts/${id}`, { method: 'DELETE' });
+            await authFetch(`/api/analysts/${id}`, { method: 'DELETE' });
             setAnalysts(analysts.filter(a => a.id !== id));
         } catch (err) {
             setError(err.message);
@@ -76,7 +77,7 @@ const ManageAnalyst = () => {
 
     const saveEdit = async (analyst) => {
         try {
-            const response = await fetch(`/api/analysts/${analyst.id}`, {
+            const response = await authFetch(`/api/analysts/${analyst.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(editValues)
