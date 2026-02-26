@@ -17,16 +17,23 @@
   font-weight: 700;
 }
 
+.analyst-error {
+  color: var(--accent-danger, #ff4d4d);
+  text-align: center;
+  margin-bottom: 16px;
+}
+
 .content-wrapper {
   display: flex;
   gap: 30px;
   width: 100%;
-  max-width: 1200px;
+  max-width: 1300px;
   justify-content: center;
   align-items: flex-start;
   flex-wrap: wrap;
 }
 
+/* ---- Add Analyst Form ---- */
 .analyst-form {
   background: var(--glass-bg);
   backdrop-filter: blur(12px);
@@ -36,36 +43,36 @@
   border-radius: 16px;
   box-shadow: var(--glass-shadow);
   width: 100%;
-  max-width: 380px;
+  max-width: 360px;
+  flex-shrink: 0;
 }
 
 .analyst-form h3 {
   margin-top: 0;
-  color: var(--accent-secondary);
+  color: var(--accent-secondary, #00d4ff);
   margin-bottom: 24px;
   text-align: center;
-  font-size: 22px;
+  font-size: 20px;
 }
 
 .analyst-form input,
 .analyst-form select {
   width: 100%;
-  padding: 14px;
-  margin-bottom: 16px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
   background: rgba(0, 0, 0, 0.2);
   border: 1px solid var(--glass-border);
   border-radius: 8px;
   color: var(--text-main);
-  font-size: 15px;
-  transition: all var(--transition-fast);
+  font-size: 14px;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
 }
 
 .analyst-form input:focus,
 .analyst-form select:focus {
   outline: none;
-  border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px rgba(142, 68, 2ad, 0.2);
-  background: rgba(0, 0, 0, 0.3);
+  border-color: var(--accent-primary, #764bff);
 }
 
 .analyst-form select option {
@@ -73,18 +80,30 @@
   color: var(--text-main);
 }
 
+.form-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+}
+
+.form-hint code {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
 .analyst-form button {
   width: 100%;
   padding: 14px;
-  background: var(--gradient-primary);
+  background: var(--gradient-primary, linear-gradient(135deg, #764bff, #00d4ff));
   color: white;
   border: none;
   border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
-  font-size: 16px;
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
-  margin-top: 10px;
+  font-size: 15px;
+  transition: transform 0.15s, box-shadow 0.15s;
 }
 
 .analyst-form button:hover {
@@ -92,7 +111,7 @@
   box-shadow: 0 5px 15px rgba(118, 75, 255, 0.4);
 }
 
-/* Table styling for Manage Analyst */
+/* ---- Analyst Table ---- */
 .table-container {
   flex: 1;
   min-width: 350px;
@@ -113,7 +132,7 @@
 
 .analyst-table th,
 .analyst-table td {
-  padding: 16px 20px;
+  padding: 14px 18px;
   text-align: left;
   border-bottom: 1px solid var(--glass-border);
   color: var(--text-main);
@@ -124,7 +143,7 @@
   background: rgba(0, 0, 0, 0.4);
   font-weight: 600;
   text-transform: uppercase;
-  font-size: 14px;
+  font-size: 12px;
   letter-spacing: 1px;
   white-space: nowrap;
 }
@@ -134,28 +153,148 @@
 }
 
 .analyst-table tr {
-  transition: background var(--transition-fast);
+  transition: background 0.15s;
 }
 
 .analyst-table tr:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.analyst-name {
+  font-weight: 600;
+}
+
+.analyst-email {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* ---- Specialty tags (read mode) ---- */
+.specialty-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.specialty-tag {
+  display: inline-block;
+  background: rgba(118, 75, 255, 0.15);
+  border: 1px solid rgba(118, 75, 255, 0.3);
+  color: var(--accent-primary, #764bff);
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ---- Patient count badge ---- */
+.patient-count-badge {
+  display: inline-block;
+  background: rgba(0, 212, 255, 0.12);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  color: var(--accent-secondary, #00d4ff);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  min-width: 36px;
+  text-align: center;
+}
+
+/* ---- Inline edit inputs ---- */
+.inline-input {
+  width: 100%;
+  min-width: 160px;
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--accent-primary, #764bff);
+  border-radius: 6px;
+  color: var(--text-main);
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+.inline-select {
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--accent-primary, #764bff);
+  border-radius: 6px;
+  color: var(--text-main);
+  font-size: 13px;
+}
+
+/* ---- Action buttons ---- */
+.action-btns {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.edit-btn {
+  background: rgba(118, 75, 255, 0.15);
+  color: var(--accent-primary, #764bff);
+  border: 1px solid rgba(118, 75, 255, 0.35);
+  padding: 7px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+
+.edit-btn:hover {
+  background: var(--accent-primary, #764bff);
+  color: #fff;
+}
+
+.save-btn {
+  background: rgba(46, 204, 113, 0.15);
+  color: #2ecc71;
+  border: 1px solid rgba(46, 204, 113, 0.4);
+  padding: 7px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+
+.save-btn:hover {
+  background: #2ecc71;
+  color: #fff;
+}
+
+.cancel-btn {
+  background: rgba(127, 140, 141, 0.15);
+  color: var(--text-muted);
+  border: 1px solid rgba(127, 140, 141, 0.3);
+  padding: 7px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+
+.cancel-btn:hover {
+  background: rgba(127, 140, 141, 0.4);
+  color: var(--text-main);
 }
 
 .delete-btn {
-  background: rgba(255, 77, 77, 0.15);
-  color: var(--accent-danger);
+  background: rgba(255, 77, 77, 0.12);
+  color: var(--accent-danger, #ff4d4d);
   border: 1px solid rgba(255, 77, 77, 0.3);
-  padding: 8px 16px;
+  padding: 7px 14px;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  transition: all var(--transition-fast);
+  transition: all 0.15s;
 }
 
 .delete-btn:hover {
-  background: var(--accent-danger);
+  background: var(--accent-danger, #ff4d4d);
   color: white;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 10px rgba(255, 77, 77, 0.4);
 }

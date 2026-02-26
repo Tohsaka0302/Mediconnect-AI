@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import '../styles/manageanalyst.css'; 
+import React, { useState, useEffect, useCallback } from 'react';
+import '../styles/manageanalyst.css';
 
 const ManageAnalyst = () => {
     const [analysts, setAnalysts] = useState([]);
+    const [stats, setStats] = useState({});   // { email: assignedPatientCount }
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    
-    // State for the form inputs
+    const [editingId, setEditingId] = useState(null);
+    const [editValues, setEditValues] = useState({ specialties: '', hospital: '' });
+
     const [newAnalyst, setNewAnalyst] = useState({
         name: '',
         email: '',
@@ -14,22 +16,30 @@ const ManageAnalyst = () => {
         specialties: ''
     });
 
-    useEffect(() => {
-        fetchAnalysts();
-    }, []);
-
-    const fetchAnalysts = async () => {
+    const fetchAnalysts = useCallback(async () => {
         try {
-            const response = await fetch('/api/analysts');
-            if (!response.ok) throw new Error('Failed to fetch analysts');
-            const data = await response.json();
-            setAnalysts(data);
+            const [analystRes, statsRes] = await Promise.all([
+                fetch('/api/analysts'),
+                fetch('http://localhost:5000/api/analyst-stats')
+            ]);
+            if (!analystRes.ok) throw new Error('Failed to fetch analysts');
+            const analystData = await analystRes.json();
+            setAnalysts(analystData);
+
+            if (statsRes.ok) {
+                const statsData = await statsRes.json();
+                const statsMap = {};
+                statsData.forEach(s => { statsMap[s.email] = s.assignedPatientCount; });
+                setStats(statsMap);
+            }
         } catch (err) {
             setError(err.message);
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
+
+    useEffect(() => { fetchAnalysts(); }, [fetchAnalysts]);
 
     const addAnalyst = async (e) => {
         e.preventDefault();
@@ -40,10 +50,8 @@ const ManageAnalyst = () => {
                 body: JSON.stringify(newAnalyst)
             });
             if (!response.ok) throw new Error('Failed to add analyst');
-            const addedAnalyst = await response.json();
-            
-            setAnalysts([...analysts, addedAnalyst]);
             setNewAnalyst({ name: '', email: '', hospital: 'A', specialties: '' });
+            fetchAnalysts();
         } catch (err) {
             setError(err.message);
         }
@@ -59,43 +67,58 @@ const ManageAnalyst = () => {
         }
     };
 
-    if (loading) return <div>Loading...</div>;
-    if (error) return <div>Error: {error}</div>;
+    const startEdit = (analyst) => {
+        setEditingId(analyst.id);
+        setEditValues({ specialties: analyst.specialties, hospital: analyst.hospital });
+    };
+
+    const cancelEdit = () => { setEditingId(null); };
+
+    const saveEdit = async (analyst) => {
+        try {
+            const response = await fetch(`/api/analysts/${analyst.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(editValues)
+            });
+            if (!response.ok) throw new Error('Failed to update analyst');
+            setEditingId(null);
+            fetchAnalysts(); // Refresh to get updated stats too
+        } catch (err) {
+            setError(err.message);
+        }
+    };
+
+    if (loading) return <div className="analyst-container"><p style={{ color: 'var(--text-muted)', textAlign: 'center' }}>Loading...</p></div>;
 
     return (
         <div className="analyst-container">
-            <h1>Manage Analysts</h1>
-            
+            <h1>👥 Manage Analysts</h1>
+            {error && <p className="analyst-error">⚠ {error}</p>}
+
             <div className="content-wrapper">
-                
-                {/* --- Left Side: The Input Form --- */}
+
+                {/* --- Left: Add Analyst Form --- */}
                 <div className="analyst-form">
                     <h3>Add New Analyst</h3>
                     <form onSubmit={addAnalyst}>
                         <input
                             type="text"
-                            placeholder="Name"
+                            placeholder="Full Name"
                             value={newAnalyst.name}
-                            onChange={(e) => setNewAnalyst({...newAnalyst, name: e.target.value})}
+                            onChange={(e) => setNewAnalyst({ ...newAnalyst, name: e.target.value })}
                             required
                         />
                         <input
                             type="email"
                             placeholder="Email"
                             value={newAnalyst.email}
-                            onChange={(e) => setNewAnalyst({...newAnalyst, email: e.target.value})}
+                            onChange={(e) => setNewAnalyst({ ...newAnalyst, email: e.target.value })}
                             required
                         />
                         <select
                             value={newAnalyst.hospital}
-                            onChange={(e) => setNewAnalyst({...newAnalyst, hospital: e.target.value})}
-                            style={{
-                                width: '100%', 
-                                padding: '10px', 
-                                marginBottom: '1rem', 
-                                borderRadius: '4px',
-                                border: '1px solid #ccc'
-                            }}
+                            onChange={(e) => setNewAnalyst({ ...newAnalyst, hospital: e.target.value })}
                         >
                             <option value="A">Hospital A</option>
                             <option value="B">Hospital B</option>
@@ -103,16 +126,17 @@ const ManageAnalyst = () => {
                         </select>
                         <input
                             type="text"
-                            placeholder="Specialties (comma separated)"
+                            placeholder="Specialties (e.g. Cardiology, Neurology)"
                             value={newAnalyst.specialties}
-                            onChange={(e) => setNewAnalyst({...newAnalyst, specialties: e.target.value})}
+                            onChange={(e) => setNewAnalyst({ ...newAnalyst, specialties: e.target.value })}
                             required
                         />
+                        <p className="form-hint">Default password: <code>analyst123</code></p>
                         <button type="submit">Add Analyst</button>
                     </form>
                 </div>
 
-                {/* --- Right Side: The Table --- */}
+                {/* --- Right: Analyst Table --- */}
                 <div className="table-container">
                     <table className="analyst-table">
                         <thead>
@@ -121,23 +145,76 @@ const ManageAnalyst = () => {
                                 <th>Email</th>
                                 <th>Hospital</th>
                                 <th>Specialties</th>
-                                <th>Manage</th>
+                                <th>Patients</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
+                            {analysts.length === 0 && (
+                                <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>No analysts yet.</td></tr>
+                            )}
                             {analysts.map(analyst => (
                                 <tr key={analyst.id}>
-                                    <td>{analyst.name}</td>
-                                    <td>{analyst.email}</td>
-                                    <td>Hospital {analyst.hospital}</td>
-                                    <td>{analyst.specialties}</td>
+                                    <td className="analyst-name">{analyst.name}</td>
+                                    <td className="analyst-email">{analyst.email}</td>
+
+                                    {/* Hospital — editable */}
                                     <td>
-                                        <button 
-                                            className="delete-btn" 
-                                            onClick={() => deleteAnalyst(analyst.id)}
-                                        >
-                                            Delete
-                                        </button>
+                                        {editingId === analyst.id ? (
+                                            <select
+                                                className="inline-select"
+                                                value={editValues.hospital}
+                                                onChange={e => setEditValues({ ...editValues, hospital: e.target.value })}
+                                            >
+                                                <option value="A">Hospital A</option>
+                                                <option value="B">Hospital B</option>
+                                                <option value="C">Hospital C</option>
+                                            </select>
+                                        ) : (
+                                            `Hospital ${analyst.hospital}`
+                                        )}
+                                    </td>
+
+                                    {/* Specialties — editable */}
+                                    <td>
+                                        {editingId === analyst.id ? (
+                                            <input
+                                                className="inline-input"
+                                                value={editValues.specialties}
+                                                onChange={e => setEditValues({ ...editValues, specialties: e.target.value })}
+                                                placeholder="e.g. Cardiology, Neurology"
+                                            />
+                                        ) : (
+                                            <div className="specialty-tags">
+                                                {(analyst.specialties || '').split(',').map(s => s.trim()).filter(Boolean).map(sp => (
+                                                    <span key={sp} className="specialty-tag">{sp}</span>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </td>
+
+                                    {/* Assigned patient count badge */}
+                                    <td>
+                                        <span className="patient-count-badge">
+                                            {stats[analyst.email] ?? '—'}
+                                        </span>
+                                    </td>
+
+                                    {/* Action buttons */}
+                                    <td>
+                                        <div className="action-btns">
+                                            {editingId === analyst.id ? (
+                                                <>
+                                                    <button className="save-btn" onClick={() => saveEdit(analyst)}>Save</button>
+                                                    <button className="cancel-btn" onClick={cancelEdit}>Cancel</button>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <button className="edit-btn" onClick={() => startEdit(analyst)}>Edit</button>
+                                                    <button className="delete-btn" onClick={() => deleteAnalyst(analyst.id)}>Delete</button>
+                                                </>
+                                            )}
+                                        </div>
                                     </td>
                                 </tr>
                             ))}

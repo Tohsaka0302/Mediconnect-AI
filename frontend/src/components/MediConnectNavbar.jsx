@@ -54,7 +54,6 @@ const MediConnectNavbar = () => {
           {/* Analyst or Admin */}
           {(user?.role === 'admin' || user?.role === 'analyst') && (
             <>
-              <li><Link to="/mediconnectai/insights">AI Insights</Link></li>
               <li><Link to="/mediconnectai/shared-patient-directory">Shared Patients</Link></li>
             </>
           )}

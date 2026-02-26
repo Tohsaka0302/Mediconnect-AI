@@ -29,9 +29,9 @@ const Login = () => {
         localStorage.setItem('user', JSON.stringify(data));
 
         if (data.role === 'admin') {
-          navigate('/mediconnectai/hospital-overview');
+          window.location.href = '/mediconnectai/hospital-overview';
         } else {
-          navigate('/mediconnectai/insights');
+          window.location.href = '/mediconnectai/shared-patient-directory';
         }
       } else {
         // 3. Fail: Show the error message from Python

@@ -2,7 +2,6 @@
 import React from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
 import Landing from './mediconnectai/Landing';
-import Insights from './mediconnectai/Insights';
 import Login from './mediconnectai/Login';
 import HospitalOverview from './mediconnectai/HospitalOverview';
 import ManageAnalyst from './mediconnectai/ManageAnalyst';
@@ -17,7 +16,6 @@ const RoutesComponent = () => {
       <Routes>
         <Route path="/" element={<Navigate to="/mediconnectai/landing" replace />} />
         <Route path="/mediconnectai/landing" element={<Landing />} />
-        <Route path="/mediconnectai/insights" element={<Insights />} />
         <Route path="/mediconnectai/login" element={<Login />} />
         <Route path="/mediconnectai/hospital-overview" element={<RequireRole allowedRoles={['admin']}> <HospitalOverview /> </RequireRole>} />
         <Route path="/mediconnectai/shared-patient-directory" element={<SharedPatientDirectory />} />

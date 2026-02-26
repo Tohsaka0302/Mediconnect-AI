@@ -8,16 +8,83 @@
 
 .overview-container h1 {
   text-align: center;
-  margin-bottom: 40px;
+  margin-bottom: 36px;
   color: var(--text-main);
   font-size: 32px;
   font-weight: 700;
 }
 
+/* ---- Summary cards ---- */
+.overview-cards {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 44px;
+}
+
+.overview-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 14px;
+  padding: 28px 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 160px;
+  box-shadow: var(--glass-shadow);
+}
+
+.card-value {
+  font-size: 38px;
+  font-weight: 700;
+  color: var(--accent-primary, #764bff);
+  line-height: 1;
+}
+
+.card-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  text-align: center;
+}
+
+/* ---- Section title ---- */
+.section-title {
+  color: var(--text-main);
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  margin-top: 0;
+  padding-left: 4px;
+  border-left: 3px solid var(--accent-primary, #764bff);
+  padding-left: 14px;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ---- Record count pill ---- */
+.record-count {
+  display: inline-block;
+  background: rgba(0, 212, 255, 0.12);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  color: var(--accent-secondary, #00d4ff);
+  border-radius: 20px;
+  padding: 3px 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* ---- Overview table ---- */
 .overview-table {
   width: 100%;
   max-width: 900px;
-  margin: 0 auto;
+  margin: 0 auto 40px auto;
   border-collapse: separate;
   border-spacing: 0;
   background: var(--glass-bg);
@@ -41,7 +108,7 @@
   background: rgba(0, 0, 0, 0.4);
   font-weight: 600;
   text-transform: uppercase;
-  font-size: 14px;
+  font-size: 13px;
   letter-spacing: 1px;
 }
 
@@ -50,7 +117,7 @@
 }
 
 .overview-table tr {
-  transition: background var(--transition-fast);
+  transition: background 0.15s;
 }
 
 .overview-table tr:hover {

@@ -6,13 +6,119 @@
   z-index: 1;
 }
 
-.shared-directory-container h1 {
-  margin-bottom: 30px;
+/* ---- Header ---- */
+.spd-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.spd-header h1 {
   color: var(--text-main);
   font-size: 32px;
   font-weight: 700;
+  margin: 0 0 6px 0;
 }
 
+.spd-role-hint {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin: 0;
+}
+
+/* ---- Analyst specialty banner ---- */
+.analyst-specialty-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(118, 75, 255, 0.12);
+  border: 1px solid rgba(118, 75, 255, 0.3);
+  border-radius: 12px;
+  padding: 12px 20px;
+  flex-shrink: 0;
+}
+
+.banner-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--accent-primary, #764bff);
+  white-space: nowrap;
+}
+
+/* ---- Specialty pill (used in banner + table) ---- */
+.specialty-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.specialty-pill {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+/* ---- Search bar ---- */
+.spd-search-bar {
+  margin-bottom: 24px;
+}
+
+.spd-search-bar input {
+  width: 100%;
+  max-width: 480px;
+  padding: 12px 20px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  color: var(--text-main);
+  font-size: 15px;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.spd-search-bar input:focus {
+  outline: none;
+  border-color: var(--accent-primary, #764bff);
+}
+
+.spd-search-bar input::placeholder {
+  color: var(--text-muted);
+}
+
+/* ---- Status messages ---- */
+.spd-status-msg {
+  color: var(--text-muted);
+  text-align: center;
+  padding: 40px 0;
+}
+
+.spd-status-msg.spd-error {
+  color: var(--accent-danger, #ff4d4d);
+}
+
+/* ---- Patient count footer ---- */
+.spd-count {
+  margin-top: 20px;
+  text-align: right;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.spd-count strong {
+  color: var(--text-main);
+}
+
+/* ---- Patient table ---- */
 .patient-table {
   width: 100%;
   border-collapse: separate;
@@ -38,7 +144,7 @@
   background: rgba(0, 0, 0, 0.4);
   font-weight: 600;
   text-transform: uppercase;
-  font-size: 14px;
+  font-size: 13px;
   letter-spacing: 1px;
 }
 
@@ -47,9 +153,26 @@
 }
 
 .patient-table tr {
-  transition: background var(--transition-fast);
+  transition: background 0.15s;
 }
 
 .patient-table tr:hover {
   background: rgba(255, 255, 255, 0.05);
+}
+
+.patient-name-cell {
+  font-weight: 600;
+}
+
+/* ---- View link ---- */
+.view-link {
+  color: var(--accent-primary, #764bff);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+  transition: opacity 0.15s;
+}
+
+.view-link:hover {
+  opacity: 0.75;
 }

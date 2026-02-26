@@ -8,6 +8,103 @@ const PatientDetail = () => {
     const [patient, setPatient] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [aiRecommendation, setAiRecommendation] = useState(null);
+    const [aiLoading, setAiLoading] = useState(false);
+    const [aiError, setAiError] = useState(null);
+    const [chatHistory, setChatHistory] = useState([]);
+    const [chatInput, setChatInput] = useState('');
+    const [isSending, setIsSending] = useState(false);
+
+    const fetchAiRecommendation = async (patientData) => {
+        const cachedChat = sessionStorage.getItem(`ai_chat_${patientData.id}`);
+        if (cachedChat) {
+            try {
+                const parsedChat = JSON.parse(cachedChat);
+                if (parsedChat.length > 0) {
+                    setChatHistory(parsedChat);
+                    return;
+                }
+            } catch (e) {
+                console.error("Failed to parse cached chat history", e);
+            }
+        }
+
+        setAiLoading(true);
+        setAiError(null);
+        try {
+            const symptoms = [patientData.condition || patientData.illness].filter(Boolean);
+            if (symptoms.length === 0) symptoms.push("General consultation");
+
+            let history = "No historical engagement data.";
+            if (patientData.visits && patientData.visits.length > 0) {
+                history = patientData.visits.map(v => `${v.date}: ${v.notes}`).join(' | ');
+            }
+
+            const res = await fetch('http://localhost:8000/predict_treatment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    patient_id: patientData.id.toString(),
+                    symptoms: symptoms,
+                    history: history
+                })
+            });
+
+            if (!res.ok) throw new Error('AI service error');
+            const data = await res.json();
+            const newHistory = [{ role: 'ai', content: data.recommended_treatment }];
+            setChatHistory(newHistory);
+            sessionStorage.setItem(`ai_chat_${patientData.id}`, JSON.stringify(newHistory));
+        } catch (err) {
+            console.error(err);
+            setAiError("Failed to load AI recommendation.");
+        } finally {
+            setAiLoading(false);
+        }
+    };
+
+    const handleSendMessage = async () => {
+        if (!chatInput.trim() || isSending) return;
+
+        const userMsg = chatInput.trim();
+        setChatInput('');
+        const newHistory = [...chatHistory, { role: 'user', content: userMsg }];
+        setChatHistory(newHistory);
+        setIsSending(true);
+
+        try {
+            const symptoms = [patient.condition || patient.illness].filter(Boolean);
+            if (symptoms.length === 0) symptoms.push("General consultation");
+            let history = "No historical engagement data.";
+            if (patient.visits && patient.visits.length > 0) {
+                history = patient.visits.map(v => `${v.date}: ${v.notes}`).join(' | ');
+            }
+
+            const res = await fetch('http://localhost:8000/chat_gemini', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    patient_id: patient.id.toString(),
+                    symptoms: symptoms,
+                    history: history,
+                    messages: newHistory
+                })
+            });
+
+            if (!res.ok) throw new Error('AI chat service error');
+            const data = await res.json();
+
+            const updatedHistory = [...newHistory, { role: 'ai', content: data.response }];
+            setChatHistory(updatedHistory);
+            sessionStorage.setItem(`ai_chat_${patient.id}`, JSON.stringify(updatedHistory));
+
+        } catch (err) {
+            console.error(err);
+            setChatHistory(prev => [...prev, { role: 'ai', content: "Error communicating with AI. Please try again." }]);
+        } finally {
+            setIsSending(false);
+        }
+    };
 
     useEffect(() => {
         fetch(`http://localhost:5000/patients/${id}`)
@@ -18,6 +115,7 @@ const PatientDetail = () => {
             .then(data => {
                 setPatient(data);
                 setLoading(false);
+                fetchAiRecommendation(data);
             })
             .catch(err => {
                 console.error(err);
@@ -103,6 +201,102 @@ const PatientDetail = () => {
                     }}>
                         {patient.condition || patient.illness || 'N/A'}
                     </div>
+                </div>
+            </div>
+
+            {/* AI Insights Section */}
+            <div className="stat-card" style={{
+                marginBottom: '40px',
+                padding: '30px 40px',
+                background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.05) 0%, rgba(236, 72, 153, 0.05) 100%)',
+                border: '1px solid rgba(168, 85, 247, 0.2)',
+                borderLeft: '4px solid #a855f7',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)',
+                display: 'flex',
+                flexDirection: 'column'
+            }}>
+                <h2 style={{ color: '#a855f7', marginBottom: '1.5rem', fontSize: '1.25rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '1.5rem' }}>✨</span> Gemini AI Clinical Context
+                </h2>
+
+                <div style={{
+                    flex: 1,
+                    maxHeight: '350px',
+                    overflowY: 'auto',
+                    paddingRight: '10px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '15px',
+                    marginBottom: '20px'
+                }}>
+                    {aiLoading ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-muted)' }}>
+                            <span style={{ animation: 'pulse 1.5s infinite', display: 'inline-block', width: '8px', height: '8px', background: '#a855f7', borderRadius: '50%' }}></span>
+                            Generating initial context via Gemini...
+                        </div>
+                    ) : aiError ? (
+                        <div style={{ color: 'var(--accent-danger)', padding: '10px', background: 'rgba(220, 53, 69, 0.1)', borderRadius: '8px' }}>
+                            {aiError}
+                        </div>
+                    ) : (
+                        chatHistory.map((msg, idx) => (
+                            <div key={idx} style={{
+                                alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                                background: msg.role === 'user' ? 'var(--accent-primary)' : 'rgba(168, 85, 247, 0.15)',
+                                color: msg.role === 'user' ? 'white' : 'var(--text-main)',
+                                padding: '12px 16px',
+                                borderRadius: '12px',
+                                maxWidth: '80%',
+                                lineHeight: '1.5',
+                                border: msg.role === 'user' ? 'none' : '1px solid rgba(168, 85, 247, 0.3)',
+                                whiteSpace: 'pre-line'
+                            }}>
+                                {msg.content}
+                            </div>
+                        ))
+                    )}
+
+                    {isSending && (
+                        <div style={{ color: '#a855f7', fontSize: '0.9rem', padding: '10px', alignSelf: 'flex-start' }}>
+                            Gemini is typing...
+                        </div>
+                    )}
+                </div>
+
+                {/* Chat Input Area */}
+                <div style={{ display: 'flex', gap: '10px', marginTop: 'auto' }}>
+                    <input
+                        type="text"
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                        placeholder="Ask Gemini a follow-up question..."
+                        style={{
+                            flex: 1,
+                            padding: '12px 16px',
+                            borderRadius: '8px',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            background: 'rgba(0,0,0,0.2)',
+                            color: 'var(--text-main)',
+                            outline: 'none'
+                        }}
+                    />
+                    <button
+                        onClick={handleSendMessage}
+                        disabled={!chatInput.trim() || isSending || aiLoading}
+                        style={{
+                            padding: '0 24px',
+                            background: '#a855f7',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '8px',
+                            cursor: (!chatInput.trim() || isSending || aiLoading) ? 'not-allowed' : 'pointer',
+                            fontWeight: '600',
+                            opacity: (!chatInput.trim() || isSending || aiLoading) ? 0.6 : 1
+                        }}
+                    >
+                        Send
+                    </button>
                 </div>
             </div>
 

@@ -41,11 +41,37 @@ app.get('/', (req, res) => {
   res.send('MediConnectAI Core Backend is Running!');
 });
 
-// Existing endpoint to get patients
+// Existing endpoint to get patients, now dynamic based on role
 app.get('/patients', async (req, res) => {
   try {
     const db = client.db('mediconnect');
-    const patients = await db.collection('patients').find({}).toArray();
+    const { role, email } = req.query;
+    console.log(`[DEBUG] Received req.query:`, req.query);
+
+    let patients = await db.collection('patients').find({}).toArray();
+
+    // If it's an analyst, grab their file and filter patients by specialty
+    if (role === 'analyst' && email) {
+      const analyst = await db.collection('analysts').findOne({ email });
+      console.log(`[DEBUG] Found analyst for ${email}:`, analyst ? analyst.specialties : 'Not found');
+
+      if (analyst && analyst.specialties) {
+        const specialtiesList = analyst.specialties
+          .split(',')
+          .map(s => s.trim().toLowerCase())
+          .filter(s => s.length > 0);
+
+        console.log(`[DEBUG] Parsed specialties:`, specialtiesList);
+
+        patients = patients.filter(patient => {
+          const suggested = (patient.suggested || '').toLowerCase();
+          const match = specialtiesList.some(specialty => suggested.includes(specialty));
+          if (match) console.log(`[DEBUG] Matched patient: ${patient.name} (${suggested})`);
+          return match;
+        });
+      }
+    }
+
     res.json(patients);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -93,9 +119,27 @@ app.post('/api/ingest-hospital-data', requireApiKey, async (req, res) => {
       return res.status(400).json({ error: 'No data provided in the request body.' });
     }
 
+    // Call Python AI backend to extract specialty
+    const axios = require('axios');
+    let suggestedSpecialty = 'Pending AI analysis';
+    try {
+      const conditionText = hospitalData.illness || hospitalData.condition || '';
+      if (conditionText) {
+        const aiResponse = await axios.post('http://127.0.0.1:8000/extract_specialty', {
+          condition: conditionText
+        });
+        if (aiResponse.data && aiResponse.data.specialty) {
+          suggestedSpecialty = aiResponse.data.specialty;
+        }
+      }
+    } catch (aiError) {
+      console.error('Failed to extract specialty from AI:', aiError.message);
+    }
+
     // Add some metadata to track where it came from and when
     const payload = {
       ...hospitalData,
+      suggested: suggestedSpecialty,
       source: 'demo_hospital',
       ingestedAt: new Date()
     };
@@ -228,6 +272,84 @@ app.put('/api/removal-requests/:id/reject', async (req, res) => {
   }
 });
 
+// --- Analyst Distribution Stats ---
+// Returns each analyst with name, email, specialties, and count of matching patients
+app.get('/api/analyst-stats', async (req, res) => {
+  try {
+    const db = client.db('mediconnect');
+    const analysts = await db.collection('analysts').find({}).toArray();
+    const patients = await db.collection('patients').find({}, { projection: { suggested: 1 } }).toArray();
+
+    const stats = analysts.map(analyst => {
+      const specialtiesList = (analyst.specialties || '')
+        .split(',')
+        .map(s => s.trim().toLowerCase())
+        .filter(s => s.length > 0);
+
+      const count = patients.filter(p => {
+        const suggested = (p.suggested || '').toLowerCase();
+        return specialtiesList.some(sp => suggested.includes(sp));
+      }).length;
+
+      return {
+        id: analyst._id.toString(),
+        name: analyst.name,
+        email: analyst.email,
+        hospital: analyst.hospital,
+        specialties: analyst.specialties,
+        assignedPatientCount: count
+      };
+    });
+
+    res.json(stats);
+  } catch (error) {
+    console.error('Error fetching analyst stats:', error);
+    res.status(500).json({ error: 'Failed to fetch analyst stats' });
+  }
+});
+
+// --- Re-tag existing patients with the new constrained specialties ---
+// Call once after updating the AI prompt to update all existing patient records
+app.post('/api/retag-patients', async (req, res) => {
+  try {
+    const db = client.db('mediconnect');
+    const axios = require('axios');
+    const patients = await db.collection('patients').find({}).toArray();
+
+    let updated = 0;
+    let failed = 0;
+
+    for (const patient of patients) {
+      const conditionText = patient.illness || patient.condition || '';
+      if (!conditionText) { failed++; continue; }
+
+      try {
+        const aiResponse = await axios.post('http://127.0.0.1:8000/extract_specialty', {
+          condition: conditionText
+        });
+        const newSpecialty = aiResponse.data?.specialty || 'Internal Medicine';
+
+        await db.collection('patients').updateOne(
+          { _id: patient._id },
+          { $set: { suggested: newSpecialty } }
+        );
+        updated++;
+      } catch (err) {
+        console.error(`Failed to retag patient ${patient.name}:`, err.message);
+        failed++;
+      }
+    }
+
+    res.json({
+      message: `Retagging complete. Updated: ${updated}, Failed: ${failed}, Total: ${patients.length}`
+    });
+  } catch (error) {
+    console.error('Error retagging patients:', error);
+    res.status(500).json({ error: 'Failed to retag patients' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
