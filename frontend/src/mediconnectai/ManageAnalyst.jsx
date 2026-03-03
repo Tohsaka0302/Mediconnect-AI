@@ -21,7 +21,7 @@ const ManageAnalyst = () => {
         try {
             const [analystRes, statsRes] = await Promise.all([
                 authFetch('/api/analysts'),
-                fetch('http://localhost:5000/api/analyst-stats')
+                authFetch('/api/analyst-stats')
             ]);
             if (!analystRes.ok) throw new Error('Failed to fetch analysts');
             const analystData = await analystRes.json();

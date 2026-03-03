@@ -4,6 +4,7 @@ import '../styles/hospitaloverview.css';
 const HospitalOverview = () => {
   const [hospitalStats, setHospitalStats] = useState([]);
   const [analystStats, setAnalystStats] = useState([]);
+  const [totalUniquePatients, setTotalUniquePatients] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -18,19 +19,25 @@ const HospitalOverview = () => {
         if (!patientsRes.ok) throw new Error('Failed to fetch patients');
 
         const patients = await patientsRes.json();
+        setTotalUniquePatients(patients.length);
 
         // Group patients by hospital
         const hospitalMap = {};
         patients.forEach(p => {
-          const hosp = p.hospital || 'Unknown';
-          if (!hospitalMap[hosp]) {
-            hospitalMap[hosp] = { sharedRecords: 0, lastUpdated: null };
-          }
-          hospitalMap[hosp].sharedRecords++;
-          const ingested = p.ingestedAt ? new Date(p.ingestedAt) : null;
-          if (ingested && (!hospitalMap[hosp].lastUpdated || ingested > hospitalMap[hosp].lastUpdated)) {
-            hospitalMap[hosp].lastUpdated = ingested;
-          }
+          const hospitalArray = Array.isArray(p.hospitals) && p.hospitals.length > 0
+            ? p.hospitals
+            : [p.hospital || 'Unknown'];
+
+          hospitalArray.forEach(hosp => {
+            if (!hospitalMap[hosp]) {
+              hospitalMap[hosp] = { sharedRecords: 0, lastUpdated: null };
+            }
+            hospitalMap[hosp].sharedRecords++;
+            const ingested = p.ingestedAt ? new Date(p.ingestedAt) : null;
+            if (ingested && (!hospitalMap[hosp].lastUpdated || ingested > hospitalMap[hosp].lastUpdated)) {
+              hospitalMap[hosp].lastUpdated = ingested;
+            }
+          });
         });
 
         const hStats = Object.entries(hospitalMap).map(([name, data]) => ({
@@ -71,8 +78,6 @@ const HospitalOverview = () => {
     </div>
   );
 
-  const totalPatients = hospitalStats.reduce((sum, h) => sum + h.sharedRecords, 0);
-
   return (
     <div className="overview-container">
       <h1>🏥 Hospital Data Overview</h1>
@@ -80,7 +85,7 @@ const HospitalOverview = () => {
       {/* Summary Cards */}
       <div className="overview-cards">
         <div className="overview-card">
-          <span className="card-value">{totalPatients}</span>
+          <span className="card-value">{totalUniquePatients}</span>
           <span className="card-label">Total Shared Patients</span>
         </div>
         <div className="overview-card">

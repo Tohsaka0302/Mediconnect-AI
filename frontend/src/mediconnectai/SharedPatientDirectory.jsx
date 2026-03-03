@@ -29,10 +29,13 @@ const getSpecialtyColor = (specialty = '') => {
 
 const SharedPatientDirectory = () => {
   const [patients, setPatients] = useState([]);
+  const [analysts, setAnalysts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [analystProfile, setAnalystProfile] = useState(null);
   const [search, setSearch] = useState('');
+  const [searchNationalId, setSearchNationalId] = useState('');
+  const [analystFilter, setAnalystFilter] = useState('All');
 
   const user = JSON.parse(localStorage.getItem('user'));
 
@@ -45,17 +48,25 @@ const SharedPatientDirectory = () => {
           fetchUrl += `?email=${encodeURIComponent(user.email)}&role=${encodeURIComponent(user.role)}`;
         }
 
-        const [patientRes] = await Promise.all([fetch(fetchUrl)]);
+        const [patientRes, analystRes] = await Promise.all([
+          fetch(fetchUrl),
+          authFetch('/api/analysts')
+        ]);
 
         if (!patientRes.ok) throw new Error('Failed to fetch patients');
         const patientData = await patientRes.json();
         setPatients(patientData);
 
+        if (analystRes.ok) {
+          const analystData = await analystRes.json();
+          setAnalysts(analystData);
+        }
+
         // If analyst, also fetch their profile to display specialties
         if (user?.role === 'analyst') {
           try {
             const profileRes = await authFetch(
-              `http://localhost:8000/api/analysts/by-email/${encodeURIComponent(user.email)}`
+              `/api/analysts/by-email/${encodeURIComponent(user.email)}`
             );
             if (profileRes.ok) {
               setAnalystProfile(await profileRes.json());
@@ -80,11 +91,41 @@ const SharedPatientDirectory = () => {
     : [];
 
   const filtered = patients.filter(p => {
+    // 1. Text Search (Name/Condition)
     const q = search.toLowerCase();
-    if (!q) return true;
     const name = (p.name || '').toLowerCase();
     const cond = (p.condition || p.illness || '').toLowerCase();
-    return name.includes(q) || cond.includes(q);
+    const matchesSearch = !q || name.includes(q) || cond.includes(q);
+
+    // 2. National ID Search
+    const nidQ = searchNationalId.toLowerCase();
+    const nid = (p.national_id || '').toLowerCase();
+    const matchesNationalId = !nidQ || nid.includes(nidQ);
+
+    // 3. Analyst Assignment Filter
+    let matchesAnalyst = true;
+    if (analystFilter !== 'All') {
+      const pSuggested = (p.suggested || '').toLowerCase();
+
+      if (analystFilter === 'Unassigned') {
+        // Unassigned if this patient's suggested specialty doesn't match any known analyst's specialty
+        matchesAnalyst = !analysts.some(a => {
+          const aSpecs = (a.specialties || '').toLowerCase().split(',').map(s => s.trim()).filter(Boolean);
+          return aSpecs.some(sp => pSuggested.includes(sp));
+        });
+      } else {
+        // Specific analyst selected
+        const selectedAnalyst = analysts.find(a => a.id === analystFilter);
+        if (selectedAnalyst) {
+          const aSpecs = (selectedAnalyst.specialties || '').toLowerCase().split(',').map(s => s.trim()).filter(Boolean);
+          matchesAnalyst = aSpecs.some(sp => pSuggested.includes(sp));
+        } else {
+          matchesAnalyst = false;
+        }
+      }
+    }
+
+    return matchesSearch && matchesNationalId && matchesAnalyst;
   });
 
   return (
@@ -118,14 +159,33 @@ const SharedPatientDirectory = () => {
         )}
       </div>
 
-      {/* Search bar */}
-      <div className="spd-search-bar">
+      {/* Search and Filters */}
+      <div className="spd-search-bar" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
         <input
           type="text"
           placeholder="🔍  Search by name or condition..."
           value={search}
           onChange={e => setSearch(e.target.value)}
+          style={{ flex: 1, minWidth: '300px' }}
         />
+        <input
+          type="text"
+          placeholder="💳  Search by National ID..."
+          value={searchNationalId}
+          onChange={e => setSearchNationalId(e.target.value)}
+          style={{ flex: 1, minWidth: '200px', padding: '0.8rem 1rem', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.1)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-main)', fontSize: '1rem' }}
+        />
+        <select
+          value={analystFilter}
+          onChange={e => setAnalystFilter(e.target.value)}
+          style={{ padding: '0.8rem 1rem', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.1)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-main)', fontSize: '1rem', minWidth: '200px' }}
+        >
+          <option value="All">All Patients</option>
+          <option value="Unassigned">Unassigned (Action Needed)</option>
+          {analysts.map(a => (
+            <option key={a.id} value={a.id}>Assigned to: {a.name}</option>
+          ))}
+        </select>
       </div>
 
       {loading ? (

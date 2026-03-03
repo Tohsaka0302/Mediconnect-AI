@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState('admin');
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -12,7 +13,7 @@ const Login = () => {
   const handleLogin = async () => {
     setError('');
     try {
-      const response = await fetch('http://localhost:8000/api/login', {
+      const response = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, role }),
@@ -51,11 +52,36 @@ const Login = () => {
         />
 
         <input
-          type="password"
+          type={showPassword ? 'text' : 'password'}
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
+
+        <label style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          marginBottom: '20px',
+          cursor: 'pointer',
+          userSelect: 'none',
+          lineHeight: '1',
+        }}>
+          <input
+            type="checkbox"
+            checked={showPassword}
+            onChange={() => setShowPassword(!showPassword)}
+            style={{ width: '15px', height: '15px', margin: '0', cursor: 'pointer', accentColor: 'var(--accent-primary, #764bff)', verticalAlign: 'middle', flexShrink: 0 }}
+          />
+          <span style={{
+            fontSize: '0.82rem',
+            color: 'var(--text-muted, #888)',
+            letterSpacing: '0.3px',
+            lineHeight: '1',
+          }}>
+            Reveal password
+          </span>
+        </label>
 
         <select onChange={(e) => setRole(e.target.value)} value={role}>
           <option value="admin">Admin</option>

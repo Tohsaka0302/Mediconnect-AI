@@ -1,21 +1,8 @@
 from pydantic import BaseModel
-from datetime import date
 from typing import List, Optional
 
-# --- Patient Models ---
+# --- AI Chat Models --- (used by ai_chat.py router)
 
-class PatientBase(BaseModel):
-    name: str
-    gender: str
-    dob: date
-
-class PatientCreate(PatientBase):
-    pass
-
-class Patient(PatientBase):
-    id: str
-
-# --- AI Chat Models ---
 class SymptomInput(BaseModel):
     patient_id: str
     symptoms: List[str]

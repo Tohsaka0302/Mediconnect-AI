@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import patients, analysts, users, auth, ai_chat
+from routers import analysts, users, auth, ai_chat
 import os
 from dotenv import load_dotenv
 import google.generativeai as genai
@@ -27,13 +27,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(patients.router)
 app.include_router(analysts.router, prefix="/api")
 app.include_router(users.router, prefix="/api")
 app.include_router(auth.router, prefix="/api")
-print("Routes in ai_chat.router before inclusion:", [r.path for r in ai_chat.router.routes])
 app.include_router(ai_chat.router)
-print("Routes in app after inclusion:", [r.path for r in app.routes if r.path.startswith('/extract_')])
 
 @app.on_event("startup")
 def startup_db_client():

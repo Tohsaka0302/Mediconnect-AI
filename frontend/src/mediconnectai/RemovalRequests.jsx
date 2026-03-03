@@ -60,6 +60,45 @@ const MediConnectRemovalRequests = () => {
         }
     };
 
+    const handleApproveAll = async () => {
+        const pendingIds = requests
+            .filter(req => req.status === 'Pending MediConnect Approval')
+            .map(req => req._id);
+
+        if (pendingIds.length === 0) {
+            alert('There are no pending requests to approve.');
+            return;
+        }
+
+        if (!window.confirm(`Are you sure you want to approve all ${pendingIds.length} pending requests?`)) {
+            return;
+        }
+
+        setActionLoading(true);
+        let successCount = 0;
+        let failCount = 0;
+
+        try {
+            await Promise.all(pendingIds.map(async (id) => {
+                try {
+                    const res = await fetch(`http://localhost:5000/api/removal-requests/${id}/approve`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    if (res.ok) successCount++;
+                    else failCount++;
+                } catch (err) {
+                    failCount++;
+                }
+            }));
+
+            alert(`Finished processing. Successfully approved: ${successCount}, Failed: ${failCount}`);
+            fetchRequests();
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
     const getStatusStyle = (status) => {
         switch (status) {
             case 'Pending Hospital Approval':
@@ -88,9 +127,18 @@ const MediConnectRemovalRequests = () => {
                     <h1>Data Removal Requests</h1>
                     <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Review requests from hospitals to remove shared patient data from the MediConnect ecosystem.</p>
                 </div>
-                <button className="btn-secondary" onClick={fetchRequests} disabled={actionLoading}>
-                    🔄 Refresh
-                </button>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                    <button
+                        className="btn-primary"
+                        onClick={handleApproveAll}
+                        disabled={actionLoading || requests.filter(r => r.status === 'Pending MediConnect Approval').length === 0}
+                    >
+                        ✅ Approve All Pending
+                    </button>
+                    <button className="btn-secondary" onClick={fetchRequests} disabled={actionLoading}>
+                        🔄 Refresh
+                    </button>
+                </div>
             </div>
 
             {error && <div style={{ color: 'var(--accent-danger)', marginBottom: '1rem', padding: '1rem', backgroundColor: 'rgba(255, 107, 107, 0.1)', borderRadius: '8px', border: '1px solid var(--accent-danger)' }}>{error}</div>}

@@ -27,7 +27,7 @@ analysts_collection = database.db["analysts"]
 users_collection = database.db["users"]
 
 @router.get("/analysts", response_model=List[Analyst])
-async def get_analysts(user=Depends(get_current_user)):
+async def get_analysts():
     analysts = []
     for analyst in analysts_collection.find():
         analyst["id"] = str(analyst["_id"])
@@ -56,8 +56,42 @@ async def create_analyst(analyst: AnalystBase, user=Depends(require_admin)):
 
     return analyst_dict
 
+@router.get("/analyst-stats")
+async def get_analyst_stats():
+    """
+    Returns each analyst with a count of patients assigned to them
+    based on matching their specialties to patient 'suggested' field.
+    Reads from the backend-ai (FastAPI) MongoDB — same DB as /analysts.
+    """
+    patients_collection = database.db["patients"]
+    analysts = list(analysts_collection.find())
+    patients = list(patients_collection.find({}, {"suggested": 1}))
+
+    stats = []
+    for analyst in analysts:
+        specialties_list = [
+            s.strip().lower()
+            for s in (analyst.get("specialties") or "").split(",")
+            if s.strip()
+        ]
+        count = sum(
+            1 for p in patients
+            if any(sp in (p.get("suggested") or "").lower() for sp in specialties_list)
+        )
+        stats.append({
+            "id": str(analyst["_id"]),
+            "name": analyst.get("name"),
+            "email": analyst.get("email"),
+            "hospital": analyst.get("hospital"),
+            "specialties": analyst.get("specialties"),
+            "assignedPatientCount": count
+        })
+
+    return stats
+
+
 @router.get("/analysts/by-email/{email}", response_model=Analyst)
-async def get_analyst_by_email(email: str, user=Depends(get_current_user)):
+async def get_analyst_by_email(email: str):
     analyst = analysts_collection.find_one({"email": email})
     if not analyst:
         raise HTTPException(status_code=404, detail="Analyst not found")

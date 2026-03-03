@@ -8,6 +8,7 @@ const MediConnectNavbar = () => {
   const [showModal, setShowModal] = useState(false);
   const [passwords, setPasswords] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
   const [message, setMessage] = useState('');
+  const [showPasswords, setShowPasswords] = useState(false);
 
   const handleLogout = () => {
     localStorage.removeItem('user');
@@ -22,7 +23,7 @@ const MediConnectNavbar = () => {
     }
 
     try {
-      const response = await authFetch('http://localhost:8000/api/users/change-password', {
+      const response = await authFetch('/api/users/change-password', {
         method: 'PUT',
         body: JSON.stringify({
           email: user.email,
@@ -89,7 +90,7 @@ const MediConnectNavbar = () => {
             <h2>Change Password</h2>
             <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <input
-                type="password"
+                type={showPasswords ? 'text' : 'password'}
                 placeholder="Old Password"
                 value={passwords.oldPassword}
                 onChange={(e) => setPasswords({ ...passwords, oldPassword: e.target.value })}
@@ -97,7 +98,7 @@ const MediConnectNavbar = () => {
                 style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc', color: '#000' }}
               />
               <input
-                type="password"
+                type={showPasswords ? 'text' : 'password'}
                 placeholder="New Password"
                 value={passwords.newPassword}
                 onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })}
@@ -105,13 +106,22 @@ const MediConnectNavbar = () => {
                 style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc', color: '#000' }}
               />
               <input
-                type="password"
+                type={showPasswords ? 'text' : 'password'}
                 placeholder="Confirm New Password"
                 value={passwords.confirmPassword}
                 onChange={(e) => setPasswords({ ...passwords, confirmPassword: e.target.value })}
                 required
                 style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc', color: '#000' }}
               />
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', userSelect: 'none', lineHeight: '1', textAlign: 'left', color: '#555', fontSize: '0.82rem' }}>
+                <input
+                  type="checkbox"
+                  checked={showPasswords}
+                  onChange={() => setShowPasswords(!showPasswords)}
+                  style={{ width: '14px', height: '14px', margin: '0', cursor: 'pointer', flexShrink: 0 }}
+                />
+                Reveal password
+              </label>
               <button type="submit" style={{ padding: '10px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
                 Submit
               </button>
