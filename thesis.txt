@@ -1,0 +1,356 @@
+
+	ABSTRACT
+In light of the ongoing administrative restructuring in Vietnam—specifically the recent and upcoming provincial unifications—there arises a pressing need for healthcare systems that ensure seamless medical data exchange and coordination across newly merged jurisdictions. This thesis introduces MediConnectAI, an intelligent and secure healthcare collaboration platform designed to bridge data gaps between hospitals and support inter-institutional data sharing among healthcare professionals from different provinces and healthcare units.
+
+Developed using React.js for the frontend and a Node.js–FastAPI hybrid backend with MongoDB as the database, MediConnectAI offers a modern and scalable architecture. The system implements multi-layered security, including JWT authentication, bcrypt password hashing, API key-based hospital authorization, and role-based access control, ensuring high-level data protection. A notable feature of the system is AI-powered medical specialty classification using the Google Gemini API, which automatically routes patients to the appropriate medical analysts based on their conditions.
+
+MediConnectAI also features an AI-powered treatment recommendation engine and a multi-turn medical chat system, both powered by the Google Gemini API, that assist healthcare professionals by analyzing patient symptoms and suggesting potential treatments. Unlike traditional hospital information systems, MediConnectAI supports cross-hospital access to shared patient profiles through a centralized data ingestion pipeline that merges patient records by national ID, thereby addressing the interoperability challenges exacerbated by the merging of healthcare jurisdictions.
+
+This thesis outlines the system's conception, design, implementation, and evaluation. The results show that MediConnectAI not only facilitates smoother collaboration and data integration across healthcare units but also represents a proactive response to the evolving healthcare landscape driven by administrative reform.
+
+
+
+	CHAPTER 1
+	INTRODUCTION
+1.1.	Background
+The rapid advancement of digital technology has created new opportunities for improving healthcare services, particularly in the area of patient data management. However, many hospitals in Vietnam still operate in silos, using fragmented and outdated systems that make data sharing and coordination difficult. This issue has been amplified in light of recent government reforms, such as the merging of provinces, which have brought together hospitals of widely varying capabilities under the same administrative region.
+
+Larger, urban hospitals often benefit from more resources and better-trained professionals, while smaller or rural hospitals may struggle with underdeveloped digital infrastructure and limited access to specialist knowledge. These disparities contribute to inefficiencies in patient care, including repeated procedures, inconsistent diagnoses, and delays in treatment due to incomplete or inaccessible medical records. The inability to effectively share data and collaborate in real time also prevents administrators from making timely and informed decisions.
+
+To address these challenges, the MediConnectAI website has been proposed. This is a centralized, AI-enhanced healthcare data system designed to unify patient records, enable secure inter-hospital data sharing, and provide intelligent decision support. The website empowers healthcare providers at all levels by offering access to patient histories, treatment logs, and AI-generated insights across institutions.
+
+In response to the critical need for both data security and modern collaboration tools, the system incorporates multi-layered authentication including JWT token-based access control and bcrypt password hashing. Hospital-to-platform communication is secured via API key validation. Additionally, the system integrates the Google Gemini API to provide AI-powered medical specialty classification, treatment recommendations, and interactive medical chat capabilities based on patient data and conditions.
+1.2.	Problem Statement
+Vietnam’s healthcare system, particularly in newly merged administrative regions, faces substantial difficulties in data management and cross-institutional collaboration. The absence of a unified, real-time website has resulted in fragmented patient records, duplicated efforts, delayed diagnoses, and poor continuity of care. These inefficiencies disproportionately impact smaller hospitals, which may lack the tools and expertise to manage cases effectively or consult with better-equipped institutions.
+
+Furthermore, current systems lack the flexibility to support remote communication, the intelligence to generate personalized treatment recommendations, and the security needed to protect sensitive patient data from unauthorized access. There is a clear need for a website that enables secure, intelligent, and collaborative healthcare delivery — regardless of hospital size or location.
+1.3.	Scope and Objectives
+1.3.1.	Scope
+This project involves the development of a full-stack web-based healthcare system that integrates multiple hospitals under a common data management and analysis platform. The scope of this research encompasses patient profile management featuring national ID-based record merging and automated deduplication across participating hospitals. Furthermore, it incorporates AI-driven clinical triage to automatically classify urgency levels and recommend consultation modes, specifically differentiating between online and offline care using the Gemini 2.5 Flash model. The system also supports hybrid care delivery through interactive medical chat for online consultations and structured hospital referrals for offline cases. To ensure privacy and data integrity, the scope includes secure data sharing via API key-protected endpoints with webhook-based synchronization, alongside governance and feedback mechanisms such as a two-stage data removal workflow and a patient feedback loop for service quality evaluation. The frontend is built using React.js with vanilla CSS for responsive and accessible interfaces. The backend combines Node.js for core system APIs and data ingestion alongside FastAPI for AI integration, with MongoDB utilized for scalable and flexible document-based data storage. The platform utilizes the native fetch API with a custom authentication wrapper for communication, JWT and bcrypt for security, and role-based access control throughout the entire system architecture.
+1.3.2.	Objectives
+The primary goal of this project is to design and implement an intelligent, secure, and collaborative healthcare platform that addresses the operational and clinical limitations of existing systems. Specifically, the first objective is to create a centralized patient data management system utilizing a unified MongoDB database, enabling hospitals to securely share and access patient profiles with automatic record merging by national ID. The second objective focuses on enabling secure data sharing between hospitals through API key-protected data ingestion, bulk sharing capabilities, and webhook-based synchronization. Thirdly, the project aims to establish a two-stage data removal and privacy workflow to ensure proper consent and data governance when handling shared clinical records. Fourthly, it seeks to integrate the Google Gemini API to provide AI-powered medical analysis, including automatic specialty classification, treatment recommendations, and interactive multi-turn medical chat. Fifthly, a multi-layered authentication system utilizing JWT, bcrypt, and API key validation is developed to guarantee data privacy. Additionally, the system is designed to support analyst management and specialty-based assignment to optimize workload distribution across the healthcare network. Another objective is to offer administrators a comprehensive hospital overview dashboard summarizing shared patient counts, active analysts, and ingestion statistics. The project also prioritizes a user-friendly interface to minimize training requirements and encourage rapid adoption. Furthermore, it aims to implement an intelligent triage algorithm powered by large language models to evaluate patient symptoms and determine appropriate care settings. To support institutional sustainability, the system establishes a conceptual billing framework to provide a transparent payment flow for medical services. Finally, the project ensures data integrity by implementing an automated deduplication merging engine that resolves data conflicts when the same patient visits multiple healthcare providers.
+
+
+1.4.	Assumption and Solution
+1.4.1.	Assumption
+The development of this system is based on several key assumptions regarding the technological and operational landscape of the target healthcare facilities. It is assumed that hospitals in the target regions possess basic digital infrastructure and reliable internet connectivity. Furthermore, medical staff are expected to be willing to adopt a web-based data system, provided it features a simplified and intuitive user interface. Another core assumption is that patient data is already partially digitized within individual hospital systems and can be formatted for sharing via REST API calls. Due to the sensitive nature of medical data, security is treated as a top priority, necessitating multi-layered protection mechanisms such as JWT and API key authentication. The system also relies on the assumption that the integrated AI service, specifically the Google Gemini 2.5 Flash API, remains accessible and capable of providing reliable medical specialty classification, urgency assessment, and triage suggestions based on the provided clinical symptoms. Lastly, it is assumed that each hospital will continue to operate its own independent system but is willing to share selected patient data with the central platform under controlled and secure conditions.
+1.4.2.	Solution
+To meet these assumptions and achieve the project goals, a comprehensive architectural and functional solution is implemented. For patient and data management, each hospital manages its own data through an independent backend, while records can be selectively shared with MediConnectAI via bulk API ingestion. The central platform then merges these records by national ID to maintain per-hospital clinical data within a nested document structure. Inter-hospital data sharing is facilitated through API key-protected REST endpoints, supporting both single and bulk ingestion modes, with shared records tracked via a boolean flag and a central array. To handle data governance, a two-stage removal request workflow ensures privacy; hospital staff initiate requests that are approved by hospital administrators before final processing by MediConnectAI, which subsequently utilizes webhooks to synchronize the deletion locally. The solution also incorporates AI-powered triage and specialty extraction by utilizing Gemini 2.5 Flash to analyze clinical inputs, classifying conditions into seven canonical specialties and evaluating severity to tag cases for either online consultation or offline emergency referral. To complete the care cycle, the platform integrates a conceptual payment gateway for online consultations alongside a patient feedback loop designed to improve AI triage accuracy and analyst performance. Security is maintained through multi-layered authentication employing JWT tokens, bcrypt password hashing, and role-based access control, supplemented by strict API key validation for inter-system communication. Finally, the system provides a responsive React.js frontend interface and a comprehensive dashboard for administrators to monitor shared statistics, connected hospitals, and analyst distribution, ensuring a seamless and secure user experience across all functionalities.
+1.5.	Structure of thesis
+Chapter 1: Introduction
+Provides an overview of the research, explaining the background and the purpose of the study. It sets the context for the project, highlighting the problems and objectives. The chapter concludes by outlining the scope and significance of the research.
+Chapter 2: Literature Review
+Reviews relevant literature and previous studies related to the topic. It discusses the evolution and key concepts in the field, pointing out the gaps in existing research. The chapter also explores the technologies that underpin the proposed system.
+Chapter 3: Methodology
+Details of the technologies and tools used in the development of the system. It explains the design process, data structure, and analysis methods employed. This chapter also provides an overview of the system’s architecture and design considerations.
+Chapter 4: Implementation and Results
+Describes the step-by-step process of building the system, from initial setup to final execution. It explains how the methodologies discussed in Chapter 3 were applied. The chapter includes the results, demonstrating how the system functions in practice.
+Chapter 5: Discussion
+Reflects on the system’s performance, analyzing its strengths and weaknesses. The chapter compares the developed system with existing solutions, providing a critical assessment. It also discusses the implications of the results and potential improvements.
+Chapter 6: Conclusion and Future Work
+Summarizes the main findings and contributions of the thesis. It reflects on the success of the system in achieving the research objectives. The chapter concludes by suggesting future research directions and improvements for the system.
+
+
+	CHAPTER 2
+	LITERATURE REVIEW
+2.1.	Overview
+Healthcare information systems play a critical role in managing clinical data, improving workflow efficiency, and enabling communication between healthcare professionals. These websites often include features such as electronic health records (EHR), patient registration, treatment logging, and administrative tools. However, with the increasing demand for interoperability and real-time data access — particularly in countries like Vietnam where recent province mergers have resulted in inconsistencies in medical resource distribution — the limitations of traditional hospital information systems are becoming more apparent. Modern healthcare requires more than isolated systems; it needs websites that can connect multiple hospitals, enable remote collaboration, and provide intelligent decision support. MediConnectAI is designed to address these unmet needs.
+2.2.	Gap Analysis and Research Justification
+While various hospital and healthcare websites exist globally and in Vietnam — such as Viettel’s eHospital, Medisoft HIS, and global systems like K Health, Owkin, and Amwell — a thorough review shows that none combine the full feature set MediConnectAI offers. The table below compares key features of these websites with those proposed in MediConnectAI:
+website	AI Recommendations	Cross-Hospital Data Sharing	Multi-layer Security	Hybrid Care & Triage
+Medisoft HIS	No	No	No	x
+K Health	Yes (pretrained)	No	No	x
+Owkin (Federated AI)	Yes (research focus)	(limited & decentralized)	No	x
+Amwell	No	No	(basic account login)	x
+MediConnectAI	Yes (Gemini 2.5 Flash)	Yes (National ID sync)	(multi-layer + FaceID)	Yes (Online/Offline)
+Table 2.2: Current similar system
+
+While these websites cover important domains such as telemedicine, AI diagnostics, or administrative EHRs, they remain isolated in function and often lack integration across hospitals and features. A detailed gap analysis identifies several critical shortcomings. Firstly, no existing system supports cross-hospital patient data sharing with a unified interface suitable for seamless clinical collaboration. Secondly, existing AI systems are often closed-source or research-focused, making them difficult to deploy directly within clinical settings by the institutions themselves. Thirdly, multi-layer authentication, combining JSON Web Tokens (JWT), bcrypt password hashing, and strict API key validation, is not standard in many local platforms, posing risks to data privacy. Finally, many existing platforms fail to seamlessly integrate their collaborative tools with advanced intelligent AI decision-support systems, including urgency triage and hybrid care recommendations.
+2.3.	Research Contribution of MediConnectAI
+MediConnectAI introduces a novel, integrated approach that systematically addresses these identified gaps. A primary contribution is the facilitation of centralized hospital collaboration, which enables synchronized patient data access across multiple hospitals, improving efficiency and reducing redundant diagnoses or treatments. Furthermore, the platform features an AI-powered medical analysis engine that leverages the Google Gemini 2.5 Flash API via a FastAPI service and MongoDB to classify conditions into seven medical specialties, generate personalized treatment recommendations, evaluate case severity for hybrid care triage, and support interactive medical chat. Security represents another major contribution; the system incorporates a rigorous multi-layer security architecture utilizing JWT, bcrypt hashing, and API key validation with strict role-based access control to securely address healthcare data privacy challenges without relying on unstandardized biometric hardware. Finally, the system includes an integrated feedback loop and a conceptual payment flow for online consultations to ensure institutional sustainability and continuously improve AI triage accuracy.
+2.4.	Technology analysis
+To build a secure, maintainable, and high-performance healthcare website, MediConnectAI adopts a modern and scalable stack, ensuring rapid development and future extensibility.
+2.4.1.	React.js and Styling
+React.js powers the frontend of MediConnectAI, offering a component-based architecture to build reusable, dynamic user interfaces. The implementation leverages state management using React hooks such as useState, useEffect, and useCallback, alongside client-side routing via React Router DOM. Secure API communication is maintained using a custom authentication wrapper with JWT Bearer token injection, while the UI enforces role-based rendering tailored for analysts and administrators. React's performance and modularity allow for the fast rendering of complex pages such as the shared patient directory, hospital overview dashboard, and AI-powered patient detail views. For styling, the frontend utilizes vanilla CSS with custom properties for a consistent dark-themed design, employing responsive layouts using flexbox and CSS grid, alongside specialty color-coded pills for visual patient mapping.
+2.4.2.	Node.js and Express.js
+Node.js, paired with Express.js, handles the core backend logic including data ingestion from hospitals, patient record management, removal request workflows, analyst statistics, and webhook-based hospital notifications. This combination provides a fast, asynchronous, event-driven model with support for concurrent bulk operations. It features native MongoDB driver integration for flexible document-based data operations and API key-based authentication middleware for secure hospital-to-platform communication. Crucially, the backend natively handles national ID-based patient merging using MongoDB upsert operations combined with specialized array operators.
+2.4.3	Fast API (Python)
+FastAPI is used to serve the AI-powered endpoints that leverage the Google Gemini 2.5 Flash API for medical analysis. It also handles user authentication, analyst CRUD operations, and user management. Its advantages include asynchronous processing for fast AI API calls and Pydantic-based validation for structured health input data, such as symptoms and chat inputs. Additionally, it manages JWT token creation and verification with strict role-based access dependencies, ensuring a secure separation of the AI and authentication services into a Python microservice for flexible scaling.
+2.4.4	MongoDB
+MongoDB serves as the system's primary database for managing all data — including patients, hospitals, analysts, users, and removal requests — across all system tiers. It was chosen for its flexible document model that naturally represents nested hospital records within patient documents. Its schema-less design enables dynamic fields for different hospital data formats without requiring database migrations. Furthermore, MongoDB offers strong performance for both read-heavy analytics and write-heavy ingestion workloads, providing native support for upsert operations and array operators that are critical for the multi-hospital merging logic.
+2.4.5	Security Tools and Libraries
+To ensure strong protection of sensitive medical records, the system integrates a comprehensive suite of security tools. JSON Web Tokens utilizing the HS256 algorithm are employed for secure authentication and access control with a strict 12-hour expiration policy. Password hashing is effectively managed using bcrypt via passlib in Python and bcryptjs in the Node.js hospital environments. Furthermore, Cross-Origin Resource Sharing (CORS) middleware is configured on all backends to restrict access to trusted frontend origins. Secure hospital-to-platform communication is protected through API key validation middleware utilizing custom headers, while Role-Based Access Control is enforced at both the API and user interface levels to separate administrative and analyst privileges.
+2.5	Summary
+This chapter reviewed current hospital systems and drew parallels from existing healthcare platforms to highlight design patterns relevant to MediConnectAI. It also analyzed the modern technologies used in the project's implementation. While current hospital systems in Vietnam focus heavily on internal operations, they often lack cross-hospital integration, intelligent features, and secure collaboration tools. MediConnectAI is designed to overcome these limitations using a custom-built platform that supports AI-powered specialty classification and urgency triage via the Google Gemini 2.5 Flash API, highly secure inter-hospital data sharing with national ID-based record merging, and a structured data removal workflow — all entirely built upon MongoDB, Node.js, FastAPI, and React.
+ 
+	CHAPTER 3
+	METHODOLOGY
+3.1.	Overview
+This chapter reviewed current hospital systems and drew parallels from existing healthcare platforms to highlight design patterns relevant to MediConnectAI. It also analyzed the modern technologies used in the project's implementation. While current hospital systems in Vietnam focus heavily on internal operations, they often lack cross-hospital integration, intelligent features, and secure collaboration tools. MediConnectAI is designed to overcome these limitations using a custom-built platform that supports AI-powered specialty classification and urgency triage via the Google Gemini 2.5 Flash API, highly secure inter-hospital data sharing with national ID-based record merging, and a structured data removal workflow — all entirely built upon MongoDB, Node.js, FastAPI, and React.
+3.2.	User requirement analysis
+The system is designed around three primary user roles to ensure efficient healthcare collaboration and data management: the Analyst, the Admin, and the Patient. The Central Authority role from traditional models is integrated directly into the MediConnectAI Admin responsibilities to streamline governance.
+3.2.1.	Analyst
+Medical analysts require secure access to patient histories, including visit logs, treatment records, and previous diagnoses for any linked patient across the hospital network. They must be able to utilize AI-driven disease suggestions powered by the Gemini 2.5 Flash API to receive automated recommendations on handling specific patient symptoms. Additionally, analysts need tools to view assigned patients filtered by their matched specialties, ensuring focused and efficient case reviews.
+Requirement Name	Detailed Description
+View Filtered Patient Directory	Access a centralized directory of shared patients, specifically filtered to match the analyst's assigned medical specialties.
+View Patient Detail	Access merged visit history, treatment records, and previous diagnoses for any linked patient across multiple hospitals.
+AI Disease Suggestions & Chat	Receive automated specialty classifications, treatment recommendations, and utilize multi-turn AI chat for complex symptom analysis.
+Manage Profile Security	Update personal passwords securely to maintain account integrity.
+Table 3.2.1: Doctor Features
+
+3.2.2.	Admin
+Administrators are responsible for the overall governance of the platform. They require capabilities to manage analyst accounts comprehensively, including the creation, updating, and deletion of profiles. Admins must have access to analytics dashboards that provide statistics on patient loads, active analysts, and inter-hospital data ingestion metrics. Furthermore, they are tasked with managing the two-stage data removal workflow, ensuring that data privacy requests from individual hospitals are processed securely and accurately.
+Requirement Name	Detailed Description
+Manage Analyst Accounts	Add, update, delete analyst profiles, and assign specific medical specialties to them.
+View Hospital Overview Dashboard	Access statistical dashboards showing shared patient counts, connected hospitals, and analyst workload distributions.
+Process Removal Requests	Approve or reject two-stage data removal requests initiated by participating hospitals to ensure data governance.
+View All Patients	Access the complete directory of merged patient profiles without specialty filtering for administrative oversight.
+Table 3.2.2: Admin Features
+
+3.2.3.	Patient
+To support the hybrid care delivery model, patients require access to tools that facilitate seamless interactions with the healthcare platform. They need a secure interface to process service payments for online consultations, ensuring institutional sustainability. Upon the completion of a consultation, patients must be able to submit detailed feedback regarding their experience to evaluate service quality and continually improve the accuracy of the AI triage system.
+Requirement Name	Detailed Description
+Process Service Payment	Access a conceptual billing framework to complete payments for online medical consultations securely.
+Submit Consultation Feedback	Provide qualitative and quantitative feedback on completed consultations to evaluate analyst performance and AI accuracy.
+View Consultation Status	Check the current status of their medical consultations, including assigned urgency levels and recommended care modes.
+Table 3.2.3: Central Authority Features 
+
+3.2.4.	Non-functional requirement
+The system must strictly adhere to high standards of security, system performance, scalability, and usability. Security is enforced through multi-layered authentication utilizing JSON Web Tokens, bcrypt password hashing, and role-based access control, alongside strict API key validation. System performance is optimized through fast API responses and asynchronous processing in both Node.js and FastAPI environments. Scalability is achieved via a microservice architecture and flexible MongoDB data structures. Finally, usability is guaranteed through a responsive, dark-themed React user interface that minimizes training time for medical staff.
+Requirement Name	Detailed Description
+Security	Multi-layered authentication combining JWT, bcrypt password hashing, API key validation, and Role-Based Access Control (RBAC).
+System Performance	Fast API responses and asynchronous processing in Node.js and FastAPI to handle concurrent AI requests and bulk data ingestion smoothly.
+Scalability	Horizontal scalability supported by a microservice architecture (separating core API and AI services) and flexible MongoDB document storage.
+Usability	Clean, responsive dark-themed React UI with component-specific styling and visual specialty mapping to minimize staff training requirements.
+Table 3.2.4: Non-functional requirement for System Design
+
+3.2.5.	System Design Overview
+MediConnectAI uses a modular microservice-based architecture with three separate deployment tiers. The first tier consists of individual hospital systems, each with their own Express.js backend and React frontend connected to local MongoDB databases. The second tier is a central Node.js backend that handles data ingestion, national ID-based record merging, removal workflows, and analyst statistics. The third tier is a FastAPI Python backend that provides intelligent AI services via the Google Gemini 2.5 Flash API and securely handles user authentication. These three tiers communicate seamlessly via REST APIs utilizing strict API key and JWT security protocols.
+ 
+Figure 3.2.1: System workflow
+
+ 
+Figure 3.2.2: Architecture Diagram
+3.2.6.	Use case diagram - Unified Modeling Language (UML)
+The Use Case diagram for the MediConnectAI platform is meticulously designed following Unified Modeling Language (UML) standards to define the functional scope and identify the interactions between external actors and the system. To accurately reflect the system's architecture and the newly integrated hybrid care model, the outdated roles of "Doctor" and "Central Authority" have been completely removed and consolidated. The system boundary encapsulates seven primary use cases that are driven by four distinct actors:
+
+Analyst (Primary Actor): Represents medical professionals who interact with the system to review filtered patient directories and utilize AI-driven tools. The Analyst is associated with UC-01: Manage Patient Records and UC-05: Recommend Treatment Plans Using AI.
+
+Admin (Primary Actor): Represents the central governance authority responsible for system administration. The Admin directly manages the platform through UC-02: Manage Analyst Accounts and handles data privacy through UC-03: Process Removal Requests. 
+
+Patient (Primary Actor): Introduced to support the hybrid care delivery model, patients interact with the system to complete conceptual billing via UC-06: Process Service Payment and evaluate service quality via UC-07: Submit Consultation Feedback.Gemini 2.5 Flash API (System Actor): Acts as an external, automated system actor that processes clinical inputs. It independently executes UC-04: AI-Driven Urgency Triage to evaluate symptom severity and recommend online or offline care modes. 
+
+To provide a more specific UML representation, the diagram also illustrates complex relationships. The «include» relationship specifies that the AI treatment recommendation (UC-05) mandatorily involves sending programmatic prompts to the Gemini API. Meanwhile, the «extend» relationship demonstrates that the automated Urgency Triage (UC-04) asynchronously updates the data within the patient records management flow (UC-01).
+
+ 
+Figure 3.2.3: Use Case Diagram
+ 
+
+3.2.7.	Use case diagram description
+Name	UC-01: Manage Patient Records
+Actor	Analyst
+Preconditions	The analyst must be logged into the system with valid credentials.
+Rationale	Analysts need to access and review merged medical records of patients specifically assigned to their medical specialties to facilitate accurate clinical collaboration.
+Postconditions	The analyst successfully reviews the patient's comprehensive history across multiple hospitals.
+Main Scenario	1.	The analyst logs into the system. 
+2.	The analyst navigates to the Shared Patient Directory. 
+3.	The system filters and displays only the patients matching the analyst's specialties. 
+4.	The analyst selects a specific patient. 
+5.	The system displays the merged patient profile, including visit histories and treatment notes from all contributing hospitals.
+Alternative Paths	4a. If the selected patient record is inaccessible or the token expires, the system displays an authorization error and redirects to the login page.
+Table 3.2.5: Use case diagram description for "Manage Patient Records"
+Name	UC-02: Manage Doctor Accounts
+Actor	Admin
+Preconditions	The administrator must be logged into the system with administrative privileges.
+Rationale	The admin is responsible for managing user accounts for all analysts within the website, ensuring secure access and proper specialty assignment.
+Postconditions	Analyst accounts are securely added, updated, or deleted in the central database.
+Main Scenario	1.	The admin navigates to the Manage Analysts page. 
+2.	The admin views a list of existing analyst accounts. 
+3.	The admin inputs new analyst details including name, email, password, and medical specialties.
+4.	The system hashes the password using bcrypt. 
+5.	The system saves the new account to the database and updates the dashboard statistics.
+Alternative Paths	3a. If duplicate email credentials are used during account creation, the system rejects the input and shows an error message.
+Table 3.2.6: Use case diagram description for "Manage Analyst Accounts"
+Name	UC-03: Process Removal Requests
+Actor	Admin
+Preconditions	The administrator must be logged in, and a participating hospital must have initiated a data removal request. 
+Rationale	To maintain strict data governance and privacy, central administrators must review and approve requests to delete shared patient data from the central platform.
+Postconditions	The requested patient data is removed from the central database, and a webhook notification is sent to the originating hospital.
+Main Scenario	1.	The admin navigates to the Removal Requests dashboard. 
+2.	The admin reviews pending requests submitted by hospital staff. 
+3.	The admin selects a request and clicks Approve. 
+4.	The system removes the specific hospital's data from the patient's merged record. 
+5.	The system triggers a webhook to notify the local hospital to un-sync the patient record.
+Alternative Paths	3a. If the admin clicks Reject, the data remains in the central database and the request status is updated to rejected.
+Table 3.2.7: Use case diagram description for "Share Patient Records Across Hospitals"
+Name	UC-04: AI-Driven Urgency Triage
+Actor	System (Gemini 2.5 Flash API)
+Preconditions	Patient clinical data and symptoms must be successfully ingested into the platform from a local hospital.
+Rationale	The system must automatically evaluate the severity of patient conditions to recommend the most appropriate consultation mode, optimizing hospital resources for hybrid care.
+Postconditions	The patient record is updated with a specific urgency level and a recommended consultation mode.
+Main Scenario	1.	The central backend receives new patient symptom data. 
+2.	The FastAPI service sends a structured prompt to the Gemini 2.5 Flash API. 
+3.	The AI evaluates the symptoms for severity. 
+4.	The AI returns a classification tag marking the case as either Low for digital online consultation or Emergency for immediate offline referral. 
+5.	The database is updated with these findings.
+Alternative Paths	2a. If the Gemini API is unresponsive, the system assigns a default manual-review status and logs an error for the administrator.
+Table 3.2.8: Use case diagram description for "AI-Driven Urgency Triage"
+Name	UC-05: Recommend Treatment Plans Using AI
+Actor	Analyst
+Preconditions	The analyst must be logged in, and the system must have sufficient patient data.
+Rationale	The AI engine helps analysts explore additional treatment plans based on patient symptoms, enabling an interactive multi-turn medical chat for complex cases.
+Postconditions	The system displays AI-generated treatment recommendations and maintains the context of the medical chat.
+Main Scenario	1.	The analyst views a patient’s detail page. 
+2.	The analyst types a specific medical query into the AI chat interface. 
+3.	The system securely sends the query along with the patient's context to the FastAPI service. 
+4.	The Gemini 2.5 Flash API processes the data and returns a structured medical suggestion. 
+5.	The analyst reviews the results to assist in clinical decision-making.
+Alternative Paths	2a. If the prompt violates safety guidelines, the AI API rejects the request and the system notifies the analyst to rephrase the clinical query.
+Table 3.2.9: Use case diagram description for "Recommend Treatment Plans Using AI"
+Name	UC-06: Process Service Payment
+Actor	Patient
+Preconditions	The patient must have a completed or pending online consultation requiring billing.
+Rationale	To establish a conceptual billing framework that ensures transparent payment flows for medical services.
+Postconditions	The consultation status is marked as paid, and a digital receipt is recorded in the database.
+Main Scenario	1.	The patient navigates to the billing section of their secure profile. 
+2.	The system displays the outstanding consultation fee. 
+3.	The patient selects a payment method and submits the transaction. 
+4.	The conceptual payment gateway processes the request. 
+5.	The database updates the consultation record to reflect the successful payment.
+Alternative Paths	4a. If the payment fails due to gateway timeout, the system alerts the patient and keeps the consultation status as pending.
+Table 3.2.10: Use case diagram description for "Process Service Payment"
+Name	UC-05: Recommend Treatment Plans Using AI
+Actor	Analyst
+Preconditions	The analyst must be logged in, and the system must have sufficient patient data.
+Rationale	The AI engine helps analysts explore additional treatment plans based on patient symptoms, enabling an interactive multi-turn medical chat for complex cases.
+Postconditions	The system displays AI-generated treatment recommendations and maintains the context of the medical chat.
+Main Scenario	6.	The analyst views a patient’s detail page. 
+7.	The analyst types a specific medical query into the AI chat interface. 
+8.	The system securely sends the query along with the patient's context to the FastAPI service. 
+9.	The Gemini 2.5 Flash API processes the data and returns a structured medical suggestion. 
+10.	The analyst reviews the results to assist in clinical decision-making.
+Alternative Paths	2a. If the prompt violates safety guidelines, the AI API rejects the request and the system notifies the analyst to rephrase the clinical query.
+Table 3.2.9: Use case diagram description for "Recommend Treatment Plans Using AI"
+Name	UC-06: Process Service Payment
+Actor	Patient
+Preconditions	The patient must have a completed or pending online consultation requiring billing.
+Rationale	To establish a conceptual billing framework that ensures transparent payment flows for medical services.
+Postconditions	The consultation status is marked as paid, and a digital receipt is recorded in the database.
+Main Scenario	6.	The patient navigates to the billing section of their secure profile. 
+7.	The system displays the outstanding consultation fee. 
+8.	The patient selects a payment method and submits the transaction. 
+9.	The conceptual payment gateway processes the request. 
+10.	The database updates the consultation record to reflect the successful payment.
+Alternative Paths	4a. If the payment fails due to gateway timeout, the system alerts the patient and keeps the consultation status as pending.
+Table 3.2.10: Use case diagram description for "Process Service Payment"
+Name	UC-07: Submit Consultation Feedback
+Actor	Patient
+Preconditions	The patient must have successfully completed an online or offline consultation via the platform.
+Rationale	To collect actionable data on service quality, analyst performance, and the accuracy of the AI triage system for continuous improvement.
+Postconditions	The feedback is securely stored in the consultations collection and linked to the assigned analyst.
+Main Scenario	1.	The patient receives a prompt to review a completed consultation. 
+2.	The patient navigates to the feedback form interface. 
+3.	The patient provides a rating and optional written comments regarding their experience. 
+4.	The patient submits the form. 
+5.	The system saves the feedback into the database for future administrative review.
+Alternative Paths	4a. If the patient attempts to submit feedback for a cancelled consultation, the system disables the form and displays a restriction message.
+Table 3.2.11: Use case diagram description for "Submit Consultation Feedback"
+3.3.	Database design
+The database structure of MediConnectAI is designed to support secure and efficient data exchange among authorized healthcare personnel. The platform's database is powered by MongoDB, chosen specifically for its flexible document schema which naturally accommodates nested objects for per-hospital records. This architecture heavily utilizes array operators for multi-hospital tracking and upsert operations for the seamless merging of patient profiles. To ensure data integrity, an automated deduplication merging engine resolves conflicts when the same patient visits multiple healthcare providers by maintaining a single source of truth based on the national identity number.
+Key collections include the 'patients' collection, which stores demographic data, national IDs, arrays of contributing hospitals, calculated 'urgency_level' metrics, and the 'recommended_mode' for hybrid care. The 'analysts' collection contains profile data, hospital affiliations, and assigned medical specialties. The 'users' collection manages system authentication securely utilizing bcrypt hashed passwords and strict role definitions. The 'removalRequests' collection tracks the lifecycle of data deletion approvals between local hospitals and the central system. Finally, to support the newly introduced hybrid care model, a 'consultations' collection is utilized to store interactive medical chat logs, conceptual payment statuses, and patient feedback linked to specific medical encounters.
+
+Table Name	Purpose
+patients	Centralized directory storing demographics, national_id, urgency_level, recommended_mode, and nested hospital records.
+analysts	Contains profile data, linked user IDs, and assigned medical specialties for AI routing.
+users	Manages authentication credentials, hashed passwords, and RBAC roles (Admin/Analyst).
+removalRequests	Tracks the two-stage approval workflow for deleting shared hospital data.
+consultations	Stores hybrid care data including medical chat logs, conceptual payment statuses, and patient feedback.
+hospital_patients	(Local Tier) Manages local patient records before they are selectively ingested into the central platform.
+Table 3.3: Database design mapping
+
+ 
+Figure 3.3.1: Class diagram
+
+ 
+Figure 3.3.2: Database design
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	CHAPTER 4
+	IMPLEMENTATION AND RESULTS
+
+4.1.	Implement
+The implementation of MediConnectAI involves designing and deploying a web-based healthcare collaboration system that supports secure data sharing, patient record merging by national ID, AI-based medical specialty classification, urgency triage, conceptual service billing, and a two-stage data removal workflow. The entire platform is built using a combination of React.js for the frontend and a hybrid backend architecture utilizing both Node.js and FastAPI. MongoDB is employed as the database management system across all tiers, providing flexible document-based data handling capabilities. The system was developed in a local environment and tested with simulated hospital data to ensure smooth interaction between the local hospital backends, the central Node.js server, the FastAPI intelligent service, and the various React user interfaces. This architecture follows a microservice approach with a clear separation of concerns to guarantee long-term maintainability and independent scalability.
+4.1.1.	Frontend
+The frontend is developed using React.js to create a responsive, modern, and accessible user interface. The architecture simulates a real-world multi-institution network by running independent frontends on separate local ports; the central platform operates on port 3000, while distinct hospital interfaces operate on ports 3001 and 3002. Client-side routing is strictly managed via React Router DOM. To ensure security, a custom authentication wrapper encapsulates the native fetch API, automatically attaching JWT Bearer tokens to all outbound requests. The user interface utilizes vanilla CSS with custom properties to enforce a consistent dark-themed design without the overhead of heavy styling frameworks. The frontend pages are modularized according to core functionalities, including specialized dashboards for administrators, a specialty-filtered patient directory for analysts, secure billing and feedback interfaces for patients, and isolated data management panels for individual hospitals.
+ 
+Figure 4.1.1: Current Frontend folder
+
+4.1.2.	Backend
+The backend architecture utilizes a dual-framework approach to optimize both data throughput and computational AI tasks. A Node.js and Express.js environment handles the core data ingestion pipeline, executing the complex national ID-based record merging logic, compiling analyst statistics, and managing the webhook-based data removal workflows. Concurrently, a Python-based FastAPI microservice serves the intelligent endpoints. This microservice securely manages user authentication utilizing bcrypt hashing and interacts directly with the Google Gemini 2.5 Flash API to process clinical data, ensuring that computationally heavy AI requests do not block the primary data ingestion event loop.
+ 
+Figure 4.1.5: Current Backend folder
+4.1.3.	AI Prompt Logic and Triage Integration
+A critical technical implementation within the FastAPI service is the integration of the Gemini 2.5 Flash model for specialty extraction and urgency triage. To ensure high clinical reliability and prevent model hallucination, the system employs a zero-temperature deterministic approach in its prompt engineering. The programmatic prompt explicitly instructs the AI to evaluate the provided patient symptoms and classify the medical condition strictly into one of seven canonical specialties: Internal Medicine, Pediatrics, Family Medicine, Surgery, Psychiatry, Radiology, or Anesthesiology. Furthermore, the prompt logic incorporates an evaluation of symptom severity to generate an urgency level. Based on this evaluation, the system automatically tags cases as either "Low" to recommend digital online consultations, or "High/Emergency" to mandate immediate offline hospital referrals. This deterministic extraction ensures that hospital resources are optimized and patients are accurately routed to the appropriate care setting.
+4.1.4.	Database
+The system uses MongoDB as its database management system, chosen for its flexible document model, native support for nested objects and array operations, and ease of development with both Mongoose ODM (hospital backends) and the native MongoDB driver (central backend). The mediconnect database stores patients (with nested hospitalRecords), analysts, users, and removal requests. Each hospital has its own database (hospitalA, hospitalB) for local patient management.
+Key MongoDB features utilized include: findOneAndUpdate with upsert for patient merging, $addToSet for tracking hospital arrays, $unset and $pull for selective data removal, and sparse indexes on national_id for efficient lookups.
+
+4.2.	Results
+The final version of MediConnectAI successfully demonstrates a secure and highly functional experience for administrators, medical analysts, and patients participating in a hybrid healthcare network. The system initializes with a secure, JWT-protected login interface that effectively routes users based on their defined roles.
+
+
+
+
+
+
+
+
+	CHAPTER 5
+	DISCUSSION AND EVALUATION
+5.1.	Discussion
+Developing MediConnectAI, a collaborative healthcare data-sharing platform, required a deep understanding of healthcare workflows, inter-hospital communication gaps, and the sensitive nature of patient data. The system was designed to improve the efficiency and collaboration of medical professionals from different hospitals through secure data exchange, AI-powered specialty classification, and intelligent treatment recommendations. Unlike traditional hospital management systems that are confined to a single institution, MediConnectAI addresses the pressing need for inter-hospital communication and collaborative patient care. The platform supports functionalities such as a shared patient directory with national ID-based record merging, AI-powered specialty classification for analyst routing, urgency triage, and interactive medical chat. The integration of a two-stage data removal workflow with webhook notifications and multi-layered security enhances its adaptability to real clinical environments. Analysts benefit from seeing only patients matching their specialties, enabling focused and efficient case review. Meanwhile, administrators are empowered with hospital overview dashboards, analyst management tools, and data removal request processing.
+The use of React.js, Node.js, FastAPI, and MongoDB ensures the system is responsive, secure, and maintainable. FastAPI enables high-performance AI integration via the Google Gemini 2.5 Flash API, allowing the system to classify patient conditions into medical specialties, generate treatment recommendations, and support multi-turn medical conversations — features that provide actionable clinical support not commonly found in existing healthcare platforms. Furthermore, the implementation of a hybrid care model significantly optimizes hospital resources. By utilizing the AI to conduct automated urgency triage, the system effectively categorizes patient cases into online or offline care settings. This intelligent routing ensures that non-critical consultations are handled digitally, thereby reserving physical hospital beds and specialist availability for high-priority emergencies, a crucial advantage for newly merged provincial healthcare networks.
+5.2.	Comparison
+To evaluate the effectiveness and novelty of MediConnectAI, it is essential to compare it with existing health information platforms such as Meditech, OpenMRS, and Epic Systems. These platforms represent some of the most widely used systems in the global healthcare IT landscape, yet they each present limitations that MediConnectAI seeks to address directly. Meditech is a proprietary electronic health record (EHR) solution used by hospitals and healthcare institutions primarily in North America. It offers a wide range of features, including clinical data management, scheduling, and patient billing. However, Meditech's closed system design limits cross-institution data sharing. Most implementations require hospitals to build custom integrations or rely on third-party interfaces to share information with other facilities, often resulting in costly and technically complex solutions. By contrast, MediConnectAI is designed from the ground up with data interoperability in mind. Its multi-hospital architecture allows analysts from different institutions to access a shared patient directory, contribute to and view patient visit history, and collaborate on treatments without requiring complicated third-party APIs. Furthermore, Meditech lacks native support for seamless AI integration across institutions and advanced multi-layered security frameworks. These intelligent analysis and data interoperability features are core components of MediConnectAI’s vision, enforcing a secure access system utilizing JWT, bcrypt, and strict API key validation tailored for sensitive healthcare environments.
+OpenMRS is an open-source platform created to support medical record keeping, especially in resource-limited settings. It provides developers with flexibility to create modules tailored to specific institutional needs. While its modularity is a strength, OpenMRS requires significant development effort to achieve advanced features like AI integration or secure inter-hospital data merging. In contrast, MediConnectAI offers these features natively. It integrates the Google Gemini 2.5 Flash API to provide disease-handling suggestions, specialty classifications, and urgency triage based on historical data and visit records. Its support for secure, role-based access makes it highly suitable for environments requiring strong compliance and patient data protection without the need for extensive custom module development.
+Epic Systems is a global leader in healthcare software, offering one of the most advanced and complete EHR platforms available. However, Epic comes with significant limitations, being extremely costly, proprietary, and difficult to implement in smaller healthcare organizations or in multi-hospital networks with diverse infrastructure. MediConnectAI serves as a lightweight alternative targeting inter-hospital collaboration without the burden of heavy infrastructure or prohibitive costs. It is built entirely on open-source and modern technologies, utilizing React.js for the frontend, Node.js and FastAPI for the backend, and MongoDB for flexible data management. Though Epic has broader capabilities, MediConnectAI's focused feature set addresses vital gaps in AI-powered disease recommendation, urgency triage, and cross-hospital record access securely and affordably.
+5.3.	Evaluation
+MediConnectAI successfully demonstrates the capability of integrating secure, multi-hospital collaboration with AI-powered medical analysis. Key strengths of the system include its robust data security, which utilizes JWT authentication, bcrypt password hashing, and API key validation to ensure multi-layered protection across all system tiers. The shared patient directory is highly effective, enabling analysts and administrators to access merged patient records from multiple hospitals, complete with advanced search and filtering capabilities. Furthermore, the integration of the Google Gemini 2.5 Flash API provides reliable automatic specialty classification, urgency triage, and multi-turn medical chat, offering tangible clinical support without requiring institutions to invest in custom model training. Data governance is also strictly maintained through a structured two-stage removal request workflow with webhook notifications, ensuring proper consent and data lifecycle management across independent hospital systems.
+A cornerstone of the platform's data integrity is its automated deduplication logic. By utilizing national ID-based record merging within the upsert-driven ingestion pipeline, the system resolves data conflicts and prevents the creation of duplicate profiles when the same patient visits multiple healthcare providers. This deduplication engine maintains a single source of truth, which is absolutely vital for ensuring continuity of care and accurate clinical history during the administrative merging of provincial healthcare systems.
+Despite this robust foundation, the current version still has notable limitations. Scalability testing in large-scale deployments with thousands of concurrent users and real-world hospital data loads remains to be thoroughly conducted. Additionally, there is a lack of full integration with modern Electronic Medical Record (EMR) standards such as HL7 or FHIR, which would improve compatibility with legacy hospital infrastructures. Finally, the system's reliance on the external Google Gemini API means that continuous internet connectivity is required for the AI features to function. Future iterations should explore hybrid approaches involving local fallback models to ensure uninterrupted service during network outages. Ultimately, while challenges remain, MediConnectAI presents a forward-thinking solution tailored for inter-hospital collaboration, laying a strong foundation for a next-generation healthcare platform.
+
+ 
+	CHAPTER 6
+	CONCLUSION AND FUTURE WORK
+
+6.1.	Conclusion
+The development of the MediConnectAI system highlights the potential of a healthcare data-sharing platform tailored for cross-hospital collaboration and intelligent clinical decision support. Designed specifically for medical analysts, system administrators, and patients, the platform integrates key functionalities such as secure JWT-based authentication, national ID-based patient record merging, and a robust two-stage data removal workflow with webhook notifications. Unlike existing isolated electronic health record solutions, MediConnectAI offers a unique combination of features focused on enhancing interoperability across newly merged provincial healthcare jurisdictions. The incorporation of multi-layered security, including bcrypt password hashing and strict API key validation, ensures that sensitive health data is protected without the heavy infrastructure requirements of traditional systems. Furthermore, the integration of the Google Gemini 2.5 Flash API provides healthcare professionals with automated specialty classification, urgency triage, treatment recommendations, and interactive medical chat, eliminating the need for expensive custom model training. The platform successfully demonstrates the viability of a hybrid care model by intelligently evaluating patient symptoms to route them to either digital online consultations or immediate offline emergency referrals. Supported by an automated deduplication engine, a conceptual service billing framework, and a patient feedback mechanism, MediConnectAI lays a strong and innovative foundation for streamlining medical collaboration and optimizing hospital resources.
+6.2.	Future work
+Looking forward, several technical and clinical enhancements are proposed to improve the system's performance, scalability, and real-world impact. While the current system successfully implements a conceptual billing framework, future iterations should prioritize full payment integration by connecting with real-world banking APIs and third-party payment gateways to facilitate secure, automated financial transactions for telemedicine services. Additionally, to improve the accuracy and clinical depth of the AI treatment recommendations, the development of a complex disease knowledge base utilizing a structured medical knowledge graph is highly recommended. This would allow the AI engine to cross-reference patient symptoms against verified clinical pathways rather than relying solely on generalized language model weights, thereby offering localized fallback support when external APIs are unavailable. The existing patient feedback loop should also be expanded into a comprehensive quality assurance module, utilizing data analytics to automatically evaluate and optimize analyst performance over time. To further support the hybrid care model, future versions must incorporate real-time live video consultations via WebRTC, enabling direct, high-quality interactions for complex specialist referrals. Furthermore, the system's infrastructure should be migrated to a highly scalable cloud environment, such as AWS or Azure, to support high availability and load balancing across simultaneous hospital data ingestions. Security procedures can be strengthened by integrating biometric authentication methods to align with increasingly strict healthcare privacy regulations. Finally, integrating modern Electronic Medical Record (EMR) standards such as HL7 or FHIR will ensure that MediConnectAI can seamlessly interoperate with legacy hospital infrastructures globally, establishing it as a truly comprehensive and adaptable healthcare platform.
+
+
+
+
+
+
+
+
+
+
+
+

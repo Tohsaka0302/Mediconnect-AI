@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
 import '../styles/login.css';
-import { useNavigate } from 'react-router-dom';
+
+const roleCopy = {
+  admin: 'Hospital operations, analyst oversight, and policy controls.',
+  analyst: 'Shared patient review and specialty-specific triage.',
+  patient: 'Personal health portal and AI-assisted consultation view.',
+};
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -8,10 +13,11 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState('admin');
   const [error, setError] = useState('');
-  const navigate = useNavigate();
 
-  const handleLogin = async () => {
+  const handleLogin = async (e) => {
+    e.preventDefault();
     setError('');
+
     try {
       const response = await fetch('/api/login', {
         method: 'POST',
@@ -22,11 +28,12 @@ const Login = () => {
       const data = await response.json();
 
       if (response.ok) {
-        // Store full response including JWT token
         localStorage.setItem('user', JSON.stringify(data));
 
         if (data.role === 'admin') {
           window.location.href = '/mediconnectai/hospital-overview';
+        } else if (data.role === 'patient') {
+          window.location.href = '/mediconnectai/patient-portal';
         } else {
           window.location.href = '/mediconnectai/shared-patient-directory';
         }
@@ -34,63 +41,103 @@ const Login = () => {
         setError(data.detail || 'Login failed');
       }
     } catch (err) {
-      console.error(err);
       setError('Server error. Is the backend running?');
     }
   };
 
   return (
     <div className="login-container">
-      <div className="login-box">
-        <h2>Login to MediConnectAI</h2>
+      <div className="login-shell">
+        <section className="landing-card login-intro">
+          <span className="landing-kicker">Secure access</span>
+          <h1>Sign in to MediConnectAI</h1>
+          <p>
+            Choose the role that matches the task you need to perform. The interface adapts to keep the important
+            actions visible and the rest out of the way.
+          </p>
 
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+          <div className="login-points">
+            <div className="login-point">
+              <div className="status-pill">Admin</div>
+              <div>
+                <strong>Operational control</strong>
+                <span>{roleCopy.admin}</span>
+              </div>
+            </div>
+            <div className="login-point">
+              <div className="status-pill">Analyst</div>
+              <div>
+                <strong>Clinical routing</strong>
+                <span>{roleCopy.analyst}</span>
+              </div>
+            </div>
+            <div className="login-point">
+              <div className="status-pill">Patient</div>
+              <div>
+                <strong>Patient portal</strong>
+                <span>{roleCopy.patient}</span>
+              </div>
+            </div>
+          </div>
+        </section>
 
-        <input
-          type={showPassword ? 'text' : 'password'}
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+        <section className="login-box">
+          <h2>Welcome back</h2>
+          <p className="login-subtitle">Use your role credentials to continue.</p>
 
-        <label style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          marginBottom: '20px',
-          cursor: 'pointer',
-          userSelect: 'none',
-          lineHeight: '1',
-        }}>
-          <input
-            type="checkbox"
-            checked={showPassword}
-            onChange={() => setShowPassword(!showPassword)}
-            style={{ width: '15px', height: '15px', margin: '0', cursor: 'pointer', accentColor: 'var(--accent-primary, #764bff)', verticalAlign: 'middle', flexShrink: 0 }}
-          />
-          <span style={{
-            fontSize: '0.82rem',
-            color: 'var(--text-muted, #888)',
-            letterSpacing: '0.3px',
-            lineHeight: '1',
-          }}>
-            Reveal password
-          </span>
-        </label>
+          <form className="login-form" onSubmit={handleLogin}>
+            <div className="role-selector">
+              <div className="role-selector-label">
+                <span>Account role</span>
+                <span>{roleCopy[role]}</span>
+              </div>
+              <div className="role-toggle">
+                {['admin', 'analyst', 'patient'].map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    className={option === role ? 'active' : ''}
+                    onClick={() => setRole(option)}
+                  >
+                    {option.charAt(0).toUpperCase() + option.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-        <select onChange={(e) => setRole(e.target.value)} value={role}>
-          <option value="admin">Admin</option>
-          <option value="analyst">Analyst</option>
-        </select>
+            <input
+              type={role === 'patient' ? 'text' : 'email'}
+              placeholder={role === 'patient' ? 'National ID' : 'Email address'}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="username"
+              required
+            />
 
-        <button onClick={handleLogin}>Login</button>
+            <input
+              type={showPassword ? 'text' : 'password'}
+              placeholder={role === 'patient' ? 'National ID password' : 'Password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              required
+            />
 
-        {error && <p style={{ color: 'red' }}>{error}</p>}
+            <div className="helper-row">
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  type="checkbox"
+                  checked={showPassword}
+                  onChange={() => setShowPassword((value) => !value)}
+                />
+                Reveal password
+              </label>
+            </div>
+
+            <button type="submit">Login</button>
+            {error && <p className="login-feedback">{error}</p>}
+          </form>
+        </section>
       </div>
     </div>
   );

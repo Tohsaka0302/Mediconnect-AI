@@ -50,6 +50,26 @@ app.get('/', (req, res) => {
   res.send('MediConnectAI Core Backend is Running!');
 });
 
+// --- Proxy /api/login to the Python auth backend (backend-ai) ---
+app.post('/api/login', async (req, res) => {
+  try {
+    const axios = require('axios');
+    const aiResponse = await axios.post('http://127.0.0.1:8001/api/login', req.body, {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 10000
+    });
+    res.status(aiResponse.status).json(aiResponse.data);
+  } catch (err) {
+    if (err.response) {
+      // Forward the error from backend-ai as-is
+      res.status(err.response.status).json(err.response.data);
+    } else {
+      console.error('Login proxy error:', err.message);
+      res.status(503).json({ detail: 'Authentication service unavailable. Is backend-ai running?' });
+    }
+  }
+});
+
 // Existing endpoint to get patients, now dynamic based on role
 app.get('/patients', async (req, res) => {
   try {
@@ -96,6 +116,8 @@ app.get('/patients', async (req, res) => {
         hospitals: hospitalsList,
         hospital: hospitalsList.join(', ') || 'Unknown',
         suggested: p.suggested,
+        urgency_level: p.urgency_level || 'Medium',
+        recommended_mode: p.recommended_mode || 'Offline',
         ingestedAt: p.ingestedAt
       };
     });
@@ -154,14 +176,18 @@ app.post('/api/ingest-hospital-data', requireApiKey, async (req, res) => {
       : 'Unknown';
     const nationalId = hospitalData.national_id;
 
-    // Get AI specialty suggestion
+    // Get AI triage: specialty + urgency + recommended mode
     const axios = require('axios');
     let suggestedSpecialty = 'Pending AI analysis';
+    let urgencyLevel = 'Medium';
+    let recommendedMode = 'Offline';
     try {
       const conditionText = hospitalData.illness || hospitalData.condition || '';
       if (conditionText) {
-        const aiResponse = await axios.post('http://127.0.0.1:8000/extract_specialty', { condition: conditionText });
+        const aiResponse = await axios.post('http://127.0.0.1:8001/extract_specialty', { condition: conditionText });
         if (aiResponse.data?.specialty) suggestedSpecialty = aiResponse.data.specialty;
+        if (aiResponse.data?.urgency_level) urgencyLevel = aiResponse.data.urgency_level;
+        if (aiResponse.data?.recommended_mode) recommendedMode = aiResponse.data.recommended_mode;
       }
     } catch (aiError) {
       console.error('AI specialty extraction failed:', aiError.message);
@@ -177,6 +203,61 @@ app.post('/api/ingest-hospital-data', requireApiKey, async (req, res) => {
 
     if (nationalId) {
       // --- MERGE MODE: upsert by national_id ---
+      const existing = await db.collection('patients').findOne({ national_id: nationalId });
+
+      if (existing) {
+        // --- CONFLICT DETECTION: compare identity fields ---
+        const fieldsToCheck = ['name', 'birth_date', 'gender', 'age'];
+        const incomingFields = { name: name || 'Unknown', birth_date, gender, age };
+        const conflicts = [];
+        for (const field of fieldsToCheck) {
+          const existingVal = String(existing[field] || '');
+          const incomingVal = String(incomingFields[field] || '');
+          if (existingVal && incomingVal && existingVal !== incomingVal) {
+            conflicts.push({ field, existingValue: existing[field], incomingValue: incomingFields[field] });
+          }
+        }
+
+        if (conflicts.length > 0) {
+          // Store conflict for admin review — do NOT auto-overwrite
+          const conflictRecord = {
+            national_id: nationalId,
+            patientId: existing._id.toString(),
+            existingPatientName: existing.name,
+            incomingHospital: hospitalName,
+            conflicts,
+            incomingData: { name, birth_date, gender, age, condition: hospitalData.illness || hospitalData.condition },
+            hospitalRecord,
+            status: 'Pending',
+            createdAt: new Date()
+          };
+          await db.collection('dataConflicts').insertOne(conflictRecord);
+
+          // Still add the hospital record but don't overwrite identity fields
+          await db.collection('patients').updateOne(
+            { national_id: nationalId },
+            {
+              $set: {
+                [`hospitalRecords.${hospitalName}`]: hospitalRecord,
+                suggested: suggestedSpecialty,
+                urgency_level: urgencyLevel,
+                recommended_mode: recommendedMode,
+                primaryCondition: hospitalData.illness || hospitalData.condition || 'N/A'
+              },
+              $addToSet: { hospitals: hospitalName }
+            }
+          );
+
+          return res.status(201).json({
+            message: `Data ingested from ${hospitalName} but identity conflicts detected. Awaiting admin review.`,
+            patientId: existing._id,
+            hasConflicts: true,
+            conflictCount: conflicts.length
+          });
+        }
+      }
+
+      // No conflicts (or new patient) — normal upsert
       const updateOp = {
         $set: {
           name: name || 'Unknown',
@@ -185,6 +266,8 @@ app.post('/api/ingest-hospital-data', requireApiKey, async (req, res) => {
           age: age,
           national_id: nationalId,
           suggested: suggestedSpecialty,
+          urgency_level: urgencyLevel,
+          recommended_mode: recommendedMode,
           primaryCondition: hospitalData.illness || hospitalData.condition || 'N/A',
           [`hospitalRecords.${hospitalName}`]: hospitalRecord
         },
@@ -207,6 +290,8 @@ app.post('/api/ingest-hospital-data', requireApiKey, async (req, res) => {
       const payload = {
         ...hospitalData,
         suggested: suggestedSpecialty,
+        urgency_level: urgencyLevel,
+        recommended_mode: recommendedMode,
         primaryCondition: hospitalData.illness || hospitalData.condition || 'N/A',
         hospitals: [hospitalName],
         hospitalRecords: { [hospitalName]: hospitalRecord },
@@ -234,26 +319,31 @@ app.post('/api/ingest-hospital-data/bulk', requireApiKey, async (req, res) => {
       return res.status(400).json({ error: 'Request body must be a non-empty array of patients.' });
     }
 
-    // Helper: run AI specialty extraction for one condition string
-    const getSpecialty = async (conditionText) => {
-      if (!conditionText) return 'Pending AI analysis';
+    // Helper: run AI triage for one condition string — returns {specialty, urgency_level, recommended_mode}
+    const getTriage = async (conditionText) => {
+      const defaults = { specialty: 'Pending AI analysis', urgency_level: 'Medium', recommended_mode: 'Offline' };
+      if (!conditionText) return defaults;
       try {
-        const aiResponse = await axios.post('http://127.0.0.1:8000/extract_specialty', { condition: conditionText }, { timeout: 5000 });
-        return aiResponse.data?.specialty || 'Pending AI analysis';
+        const aiResponse = await axios.post('http://127.0.0.1:8001/extract_specialty', { condition: conditionText }, { timeout: 5000 });
+        return {
+          specialty: aiResponse.data?.specialty || defaults.specialty,
+          urgency_level: aiResponse.data?.urgency_level || defaults.urgency_level,
+          recommended_mode: aiResponse.data?.recommended_mode || defaults.recommended_mode
+        };
       } catch {
-        return 'Pending AI analysis';
+        return defaults;
       }
     };
 
     // Run AI calls in parallel with a concurrency limit of 5
     const CONCURRENCY = 5;
-    const specialties = new Array(patientsArray.length).fill('Pending AI analysis');
+    const triageResults = new Array(patientsArray.length).fill(null);
     for (let i = 0; i < patientsArray.length; i += CONCURRENCY) {
       const batch = patientsArray.slice(i, i + CONCURRENCY);
       const results = await Promise.all(
-        batch.map(p => getSpecialty(p.illness || p.condition || ''))
+        batch.map(p => getTriage(p.illness || p.condition || ''))
       );
-      results.forEach((sp, j) => { specialties[i + j] = sp; });
+      results.forEach((tr, j) => { triageResults[i + j] = tr; });
     }
 
     // Build and run all DB upserts in parallel
@@ -265,7 +355,7 @@ app.post('/api/ingest-hospital-data/bulk', requireApiKey, async (req, res) => {
             ? (rawHospital.toLowerCase().startsWith('hospital') ? rawHospital : `Hospital ${rawHospital}`)
             : 'Unknown';
           const nationalId = hospitalData.national_id;
-          const suggestedSpecialty = specialties[idx];
+          const triage = triageResults[idx];
 
           const { name, birth_date, gender, age, national_id, hospital, ...rest } = hospitalData;
           const hospitalRecord = {
@@ -282,7 +372,9 @@ app.post('/api/ingest-hospital-data/bulk', requireApiKey, async (req, res) => {
                   name: name || 'Unknown',
                   birth_date, gender, age,
                   national_id: nationalId,
-                  suggested: suggestedSpecialty,
+                  suggested: triage.specialty,
+                  urgency_level: triage.urgency_level,
+                  recommended_mode: triage.recommended_mode,
                   primaryCondition: hospitalData.illness || hospitalData.condition || 'N/A',
                   [`hospitalRecords.${hospitalName}`]: hospitalRecord
                 },
@@ -295,7 +387,9 @@ app.post('/api/ingest-hospital-data/bulk', requireApiKey, async (req, res) => {
           } else {
             const payload = {
               ...hospitalData,
-              suggested: suggestedSpecialty,
+              suggested: triage.specialty,
+              urgency_level: triage.urgency_level,
+              recommended_mode: triage.recommended_mode,
               primaryCondition: hospitalData.illness || hospitalData.condition || 'N/A',
               hospitals: [hospitalName],
               hospitalRecords: { [hospitalName]: hospitalRecord },
@@ -492,6 +586,123 @@ app.put('/api/removal-requests/:id/reject', async (req, res) => {
   }
 });
 
+// ===============================================================
+// --- ANALYST MANAGEMENT CRUD ---
+// ===============================================================
+
+// List all analysts
+app.get('/api/analysts', async (req, res) => {
+  try {
+    const db = client.db('mediconnect');
+    const analysts = await db.collection('analysts').find({}).toArray();
+    const result = analysts.map(a => ({
+      id: a._id.toString(),
+      name: a.name,
+      email: a.email,
+      hospital: a.hospital,
+      specialties: a.specialties,
+      password: a.password
+    }));
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching analysts:', error);
+    res.status(500).json({ error: 'Failed to fetch analysts' });
+  }
+});
+
+// Create a new analyst
+app.post('/api/analysts', async (req, res) => {
+  try {
+    const db = client.db('mediconnect');
+    const { name, email, hospital, specialties } = req.body;
+
+    if (!name || !email) {
+      return res.status(400).json({ error: 'Name and email are required.' });
+    }
+
+    // Check for duplicate email
+    const existing = await db.collection('analysts').findOne({ email });
+    if (existing) {
+      return res.status(409).json({ error: 'An analyst with this email already exists.' });
+    }
+
+    const newAnalyst = {
+      name,
+      email,
+      hospital: hospital || 'A',
+      specialties: specialties || '',
+      password: 'analyst123',  // Default password
+      role: 'analyst',
+      createdAt: new Date()
+    };
+
+    const result = await db.collection('analysts').insertOne(newAnalyst);
+    res.status(201).json({
+      id: result.insertedId.toString(),
+      ...newAnalyst
+    });
+  } catch (error) {
+    console.error('Error creating analyst:', error);
+    res.status(500).json({ error: 'Failed to create analyst' });
+  }
+});
+
+// Update an analyst
+app.put('/api/analysts/:id', async (req, res) => {
+  try {
+    const db = client.db('mediconnect');
+    const { ObjectId } = require('mongodb');
+    const analystId = req.params.id;
+    const { specialties, hospital } = req.body;
+
+    const updateFields = {};
+    if (specialties !== undefined) updateFields.specialties = specialties;
+    if (hospital !== undefined) updateFields.hospital = hospital;
+    updateFields.updatedAt = new Date();
+
+    const result = await db.collection('analysts').findOneAndUpdate(
+      { _id: new ObjectId(analystId) },
+      { $set: updateFields },
+      { returnDocument: 'after' }
+    );
+
+    if (!result) {
+      return res.status(404).json({ error: 'Analyst not found' });
+    }
+
+    res.json({
+      id: result._id.toString(),
+      name: result.name,
+      email: result.email,
+      hospital: result.hospital,
+      specialties: result.specialties
+    });
+  } catch (error) {
+    console.error('Error updating analyst:', error);
+    res.status(500).json({ error: 'Failed to update analyst' });
+  }
+});
+
+// Delete an analyst
+app.delete('/api/analysts/:id', async (req, res) => {
+  try {
+    const db = client.db('mediconnect');
+    const { ObjectId } = require('mongodb');
+    const analystId = req.params.id;
+
+    const result = await db.collection('analysts').deleteOne({ _id: new ObjectId(analystId) });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ error: 'Analyst not found' });
+    }
+
+    res.json({ message: 'Analyst deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting analyst:', error);
+    res.status(500).json({ error: 'Failed to delete analyst' });
+  }
+});
+
 // --- Analyst Distribution Stats ---
 // Returns each analyst with name, email, specialties, and count of matching patients
 app.get('/api/analyst-stats', async (req, res) => {
@@ -545,14 +756,16 @@ app.post('/api/retag-patients', async (req, res) => {
       if (!conditionText) { failed++; continue; }
 
       try {
-        const aiResponse = await axios.post('http://127.0.0.1:8000/extract_specialty', {
+        const aiResponse = await axios.post('http://127.0.0.1:8001/extract_specialty', {
           condition: conditionText
         });
         const newSpecialty = aiResponse.data?.specialty || 'Internal Medicine';
+        const newUrgency = aiResponse.data?.urgency_level || 'Medium';
+        const newMode = aiResponse.data?.recommended_mode || 'Offline';
 
         await db.collection('patients').updateOne(
           { _id: patient._id },
-          { $set: { suggested: newSpecialty } }
+          { $set: { suggested: newSpecialty, urgency_level: newUrgency, recommended_mode: newMode } }
         );
         updated++;
       } catch (err) {
@@ -567,6 +780,435 @@ app.post('/api/retag-patients', async (req, res) => {
   } catch (error) {
     console.error('Error retagging patients:', error);
     res.status(500).json({ error: 'Failed to retag patients' });
+  }
+});
+
+// ===============================================================
+// --- DATA CONFLICT MANAGEMENT ---
+// ===============================================================
+
+// List all pending data conflicts (for Admin UI)
+app.get('/api/data-conflicts', async (req, res) => {
+  try {
+    const db = client.db('mediconnect');
+    const conflicts = await db.collection('dataConflicts').find({}).sort({ createdAt: -1 }).toArray();
+    res.json(conflicts);
+  } catch (error) {
+    console.error('Error fetching data conflicts:', error);
+    res.status(500).json({ error: 'Failed to fetch data conflicts' });
+  }
+});
+
+// Approve conflict — overwrite existing patient with incoming data
+app.put('/api/data-conflicts/:id/approve', async (req, res) => {
+  try {
+    const db = client.db('mediconnect');
+    const { ObjectId } = require('mongodb');
+    const conflictId = req.params.id;
+
+    const conflict = await db.collection('dataConflicts').findOne({ _id: new ObjectId(conflictId) });
+    if (!conflict) return res.status(404).json({ error: 'Conflict not found' });
+
+    // Overwrite the patient's identity fields with incoming data
+    const updateFields = {};
+    if (conflict.incomingData.name) updateFields.name = conflict.incomingData.name;
+    if (conflict.incomingData.birth_date) updateFields.birth_date = conflict.incomingData.birth_date;
+    if (conflict.incomingData.gender) updateFields.gender = conflict.incomingData.gender;
+    if (conflict.incomingData.age) updateFields.age = conflict.incomingData.age;
+
+    await db.collection('patients').updateOne(
+      { _id: new ObjectId(conflict.patientId) },
+      { $set: updateFields }
+    );
+
+    // Mark conflict as resolved
+    await db.collection('dataConflicts').updateOne(
+      { _id: new ObjectId(conflictId) },
+      { $set: { status: 'Approved', resolvedAt: new Date() } }
+    );
+
+    res.json({ message: 'Conflict resolved — patient updated with incoming data.' });
+  } catch (error) {
+    console.error('Error approving conflict:', error);
+    res.status(500).json({ error: 'Failed to approve conflict' });
+  }
+});
+
+// Create New — insert incoming data as a separate patient record
+app.put('/api/data-conflicts/:id/create-new', async (req, res) => {
+  try {
+    const db = client.db('mediconnect');
+    const { ObjectId } = require('mongodb');
+    const conflictId = req.params.id;
+
+    const conflict = await db.collection('dataConflicts').findOne({ _id: new ObjectId(conflictId) });
+    if (!conflict) return res.status(404).json({ error: 'Conflict not found' });
+
+    // Create a brand-new patient from the incoming data
+    const newPatient = {
+      name: conflict.incomingData.name || 'Unknown',
+      birth_date: conflict.incomingData.birth_date,
+      gender: conflict.incomingData.gender,
+      age: conflict.incomingData.age,
+      national_id: conflict.national_id + '_dup',
+      primaryCondition: conflict.incomingData.condition || 'N/A',
+      hospitals: [conflict.incomingHospital],
+      hospitalRecords: { [conflict.incomingHospital]: conflict.hospitalRecord },
+      suggested: 'Pending AI analysis',
+      urgency_level: 'Medium',
+      recommended_mode: 'Offline',
+      ingestedAt: new Date()
+    };
+
+    const result = await db.collection('patients').insertOne(newPatient);
+
+    // Also remove the incoming hospital from the original patient to avoid duplication
+    await db.collection('patients').updateOne(
+      { _id: new ObjectId(conflict.patientId) },
+      {
+        $unset: { [`hospitalRecords.${conflict.incomingHospital}`]: '' },
+        $pull: { hospitals: conflict.incomingHospital }
+      }
+    );
+
+    // Mark conflict as resolved
+    await db.collection('dataConflicts').updateOne(
+      { _id: new ObjectId(conflictId) },
+      { $set: { status: 'Created New', resolvedAt: new Date(), newPatientId: result.insertedId.toString() } }
+    );
+
+    res.json({ message: 'Conflict resolved — new patient record created.', newPatientId: result.insertedId });
+  } catch (error) {
+    console.error('Error creating new patient from conflict:', error);
+    res.status(500).json({ error: 'Failed to create new patient' });
+  }
+});
+
+// Cancel conflict — keep existing data, discard incoming identity changes
+app.put('/api/data-conflicts/:id/cancel', async (req, res) => {
+  try {
+    const db = client.db('mediconnect');
+    const { ObjectId } = require('mongodb');
+    const conflictId = req.params.id;
+
+    const conflict = await db.collection('dataConflicts').findOne({ _id: new ObjectId(conflictId) });
+    if (!conflict) return res.status(404).json({ error: 'Conflict not found' });
+
+    // Just mark as cancelled — existing data remains unchanged
+    await db.collection('dataConflicts').updateOne(
+      { _id: new ObjectId(conflictId) },
+      { $set: { status: 'Cancelled', resolvedAt: new Date() } }
+    );
+
+    res.json({ message: 'Conflict cancelled — existing patient data kept unchanged.' });
+  } catch (error) {
+    console.error('Error cancelling conflict:', error);
+    res.status(500).json({ error: 'Failed to cancel conflict' });
+  }
+});
+
+// ===============================================================
+// --- PATIENT PORTAL (self-lookup by national_id) ---
+// ===============================================================
+
+app.get('/api/patient-portal/:nationalId', async (req, res) => {
+  try {
+    const db = client.db('mediconnect');
+    const nationalId = req.params.nationalId;
+
+    const patient = await db.collection('patients').findOne({ national_id: nationalId });
+    if (!patient) return res.status(404).json({ error: 'No patient record found for this National ID.' });
+
+    // Return full patient data including AI triage results
+    res.json({
+      _id: patient._id,
+      name: patient.name,
+      birth_date: patient.birth_date,
+      gender: patient.gender,
+      age: patient.age,
+      national_id: patient.national_id,
+      hospitals: patient.hospitals || [],
+      primaryCondition: patient.primaryCondition,
+      suggested: patient.suggested,
+      urgency_level: patient.urgency_level || 'Medium',
+      recommended_mode: patient.recommended_mode || 'Offline',
+      hospitalRecords: patient.hospitalRecords || {},
+      ingestedAt: patient.ingestedAt
+    });
+  } catch (error) {
+    console.error('Error fetching patient portal:', error);
+    res.status(500).json({ error: 'Failed to fetch patient data' });
+  }
+});
+
+// ===============================================================
+// --- PATIENT FEEDBACK ---
+// ===============================================================
+
+// Submit feedback
+app.post('/api/feedback', async (req, res) => {
+  try {
+    const db = client.db('mediconnect');
+    const { patient_id, national_id, rating, comment } = req.body;
+
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({ error: 'Rating must be between 1 and 5.' });
+    }
+    if (!patient_id && !national_id) {
+      return res.status(400).json({ error: 'Patient ID or National ID is required.' });
+    }
+
+    const feedback = {
+      patient_id: patient_id || null,
+      national_id: national_id || null,
+      rating: parseInt(rating),
+      comment: comment || '',
+      createdAt: new Date()
+    };
+
+    const result = await db.collection('feedback').insertOne(feedback);
+    res.status(201).json({ message: 'Feedback submitted successfully.', id: result.insertedId });
+  } catch (error) {
+    console.error('Error submitting feedback:', error);
+    res.status(500).json({ error: 'Failed to submit feedback' });
+  }
+});
+
+// Get feedback for a patient
+app.get('/api/feedback/:patientId', async (req, res) => {
+  try {
+    const db = client.db('mediconnect');
+    const patientId = req.params.patientId;
+
+    // Search by either patient_id string or national_id
+    const feedbackList = await db.collection('feedback').find({
+      $or: [{ patient_id: patientId }, { national_id: patientId }]
+    }).sort({ createdAt: -1 }).toArray();
+
+    res.json(feedbackList);
+  } catch (error) {
+    console.error('Error fetching feedback:', error);
+    res.status(500).json({ error: 'Failed to fetch feedback' });
+  }
+});
+
+// ===============================================================
+// --- ANALYST NOTES / FEEDBACK ---
+// ===============================================================
+
+// Save an analyst note
+app.post('/api/analyst-notes', async (req, res) => {
+  try {
+    const db = client.db('mediconnect');
+    const { patient_id, national_id, analyst_name, analyst_id, note } = req.body;
+
+    if (!note) return res.status(400).json({ error: 'Note content is required.' });
+
+    const analystNote = {
+      patient_id: patient_id || null,
+      national_id: national_id || null,
+      analyst_name: analyst_name || 'Analyst',
+      analyst_id: analyst_id || null,
+      note,
+      createdAt: new Date()
+    };
+
+    const result = await db.collection('analyst_notes').insertOne(analystNote);
+    res.status(201).json({ message: 'Analyst note saved.', id: result.insertedId, note: analystNote });
+  } catch (error) {
+    console.error('Error saving analyst note:', error);
+    res.status(500).json({ error: 'Failed to save analyst note' });
+  }
+});
+
+// Get analyst notes for a patient
+app.get('/api/analyst-notes/:patientId', async (req, res) => {
+  try {
+    const db = client.db('mediconnect');
+    const patientId = req.params.patientId;
+
+    const notesList = await db.collection('analyst_notes').find({
+      $or: [{ patient_id: patientId }, { national_id: patientId }]
+    }).sort({ createdAt: -1 }).toArray();
+
+    res.json(notesList);
+  } catch (error) {
+    console.error('Error fetching analyst notes:', error);
+    res.status(500).json({ error: 'Failed to fetch analyst notes' });
+  }
+});
+
+// ===============================================================
+// --- AI NOTES ---
+// ===============================================================
+
+// Save an AI note
+app.post('/api/ai-notes', async (req, res) => {
+  try {
+    const db = client.db('mediconnect');
+    const { patient_id, national_id, note } = req.body;
+
+    if (!note) return res.status(400).json({ error: 'Note content is required.' });
+
+    const aiNote = {
+      patient_id: patient_id || null,
+      national_id: national_id || null,
+      note,
+      createdAt: new Date()
+    };
+
+    const result = await db.collection('ai_notes').insertOne(aiNote);
+    res.status(201).json({ message: 'AI note saved.', id: result.insertedId, note: aiNote });
+  } catch (error) {
+    console.error('Error saving AI note:', error);
+    res.status(500).json({ error: 'Failed to save AI note' });
+  }
+});
+
+// Get AI notes for a patient
+app.get('/api/ai-notes/:patientId', async (req, res) => {
+  try {
+    const db = client.db('mediconnect');
+    const patientId = req.params.patientId;
+
+    const notesList = await db.collection('ai_notes').find({
+      $or: [{ patient_id: patientId }, { national_id: patientId }]
+    }).sort({ createdAt: -1 }).toArray();
+
+    res.json(notesList);
+  } catch (error) {
+    console.error('Error fetching AI notes:', error);
+    res.status(500).json({ error: 'Failed to fetch AI notes' });
+  }
+});
+
+// Delete an AI note
+app.delete('/api/ai-notes/:id', async (req, res) => {
+  try {
+    const db = client.db('mediconnect');
+    const { ObjectId } = require('mongodb');
+    const { id } = req.params;
+
+    const result = await db.collection('ai_notes').deleteOne({ _id: new ObjectId(id) });
+    if (result.deletedCount === 0) return res.status(404).json({ error: 'Note not found' });
+    
+    res.json({ message: 'AI note deleted' });
+  } catch (error) {
+    console.error('Error deleting AI note:', error);
+    res.status(500).json({ error: 'Failed to delete AI note' });
+  }
+});
+
+
+// ===============================================================
+// --- MOCK PAYMENT / CONSULTATIONS ---
+// ===============================================================
+
+// Create a consultation
+app.post('/api/consultations', async (req, res) => {
+  try {
+    const db = client.db('mediconnect');
+    const { patient_id, national_id, analyst_id, type, notes, proposed_by, location } = req.body;
+
+    if (!patient_id && !national_id) {
+      return res.status(400).json({ error: 'Patient ID or National ID is required.' });
+    }
+
+    const consultation = {
+      patient_id: patient_id || null,
+      national_id: national_id || null,
+      analyst_id: analyst_id || null,
+      proposed_by: proposed_by || 'patient', // 'patient' or 'analyst'
+      type: type || 'Offline',  // Online or Offline
+      location: type === 'Offline' ? (location || 'Not Specified') : 'Online link will be provided',
+      status: 'Pending Approval',
+      payment_status: type === 'Online' ? 'Waiting Approval' : 'N/A',
+      amount: type === 'Online' ? 150000 : 0,   // Mock amount in VND
+      notes: notes || '',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    const result = await db.collection('consultations').insertOne(consultation);
+    res.status(201).json({ message: 'Consultation created.', id: result.insertedId, consultation });
+  } catch (error) {
+    console.error('Error creating consultation:', error);
+    res.status(500).json({ error: 'Failed to create consultation' });
+  }
+});
+
+// Approve or Decline a consultation
+app.put('/api/consultations/:id/status', async (req, res) => {
+  try {
+    const db = client.db('mediconnect');
+    const { ObjectId } = require('mongodb');
+    const { id } = req.params;
+    const { status } = req.body; // 'Scheduled' or 'Declined'
+
+    if (!status) return res.status(400).json({ error: 'status is required.' });
+
+    // Fetch the consultation to see its type
+    const consultation = await db.collection('consultations').findOne({ _id: new ObjectId(id) });
+    if (!consultation) return res.status(404).json({ error: 'Consultation not found' });
+
+    const updateFields = { status, updatedAt: new Date() };
+
+    // If accepted and it's online, advance payment status to Pending
+    if (status === 'Scheduled' && consultation.type === 'Online') {
+      updateFields.payment_status = 'Pending';
+    }
+
+    const result = await db.collection('consultations').findOneAndUpdate(
+      { _id: new ObjectId(id) },
+      { $set: updateFields },
+      { returnDocument: 'after' } // return the updated doc
+    );
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error updating consultation status:', error);
+    res.status(500).json({ error: 'Failed to update status' });
+  }
+});
+
+// Simulate payment — toggle payment_status to "Paid"
+app.post('/api/payment/simulate', async (req, res) => {
+  try {
+    const db = client.db('mediconnect');
+    const { ObjectId } = require('mongodb');
+    const { consultation_id } = req.body;
+
+    if (!consultation_id) return res.status(400).json({ error: 'consultation_id is required.' });
+
+    const result = await db.collection('consultations').findOneAndUpdate(
+      { _id: new ObjectId(consultation_id) },
+      { $set: { payment_status: 'Paid', updatedAt: new Date() } },
+      { returnDocument: 'after' }
+    );
+
+    if (!result) return res.status(404).json({ error: 'Consultation not found.' });
+
+    res.json({ message: 'Payment simulated successfully.', consultation: result });
+  } catch (error) {
+    console.error('Error simulating payment:', error);
+    res.status(500).json({ error: 'Failed to simulate payment' });
+  }
+});
+
+// List consultations for a patient
+app.get('/api/consultations/:patientId', async (req, res) => {
+  try {
+    const db = client.db('mediconnect');
+    const patientId = req.params.patientId;
+
+    const consultations = await db.collection('consultations').find({
+      $or: [{ patient_id: patientId }, { national_id: patientId }]
+    }).sort({ createdAt: -1 }).toArray();
+
+    res.json(consultations);
+  } catch (error) {
+    console.error('Error fetching consultations:', error);
+    res.status(500).json({ error: 'Failed to fetch consultations' });
   }
 });
 

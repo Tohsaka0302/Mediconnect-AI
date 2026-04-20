@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
 import '../styles/mediconnectnavbar.css';
 import { authFetch } from '../utils/authFetch';
 
@@ -35,7 +35,7 @@ const MediConnectNavbar = () => {
       const data = await response.json();
       if (response.ok) {
         setMessage('Password changed successfully');
-        setTimeout(() => setShowModal(false), 2000);
+        setTimeout(() => setShowModal(false), 1400);
       } else {
         setMessage(data.detail || 'Error changing password');
       }
@@ -44,33 +44,38 @@ const MediConnectNavbar = () => {
     }
   };
 
+  const navItemClass = ({ isActive }) => (isActive ? 'active' : '');
+
   return (
     <>
       <nav className="navbar">
-        <div className="navbar-logo">MediConnectAI</div>
-        <ul className="navbar-links">
-          {/* Always show */}
-          <li><Link to="/mediconnectai/landing">Home</Link></li>
+        <div className="navbar-brand">
+          <Link to="/mediconnectai/landing" className="navbar-logo">MediConnectAI</Link>
+          <span className="navbar-tag">Secure care coordination</span>
+        </div>
 
-          {/* Analyst or Admin */}
+        <ul className="navbar-links">
+          <li><NavLink to="/mediconnectai/landing" className={navItemClass}>Home</NavLink></li>
+
           {(user?.role === 'admin' || user?.role === 'analyst') && (
-            <>
-              <li><Link to="/mediconnectai/shared-patient-directory">Shared Patients</Link></li>
-            </>
+            <li><NavLink to="/mediconnectai/shared-patient-directory" className={navItemClass}>Shared Patients</NavLink></li>
           )}
 
-          {/* Admin Only */}
           {user?.role === 'admin' && (
             <>
-              <li><Link to="/mediconnectai/hospital-overview">Hospital Overview</Link></li>
-              <li><Link to="/mediconnectai/manage-analyst">Manage Analyst</Link></li>
-              <li><Link to="/mediconnectai/removal-requests">Removal Requests</Link></li>
+              <li><NavLink to="/mediconnectai/hospital-overview" className={navItemClass}>Hospital Overview</NavLink></li>
+              <li><NavLink to="/mediconnectai/manage-analyst" className={navItemClass}>Manage Analysts</NavLink></li>
+              <li><NavLink to="/mediconnectai/removal-requests" className={navItemClass}>Removal Requests</NavLink></li>
+              <li><NavLink to="/mediconnectai/conflict-review" className={navItemClass}>Conflict Review</NavLink></li>
             </>
           )}
 
-          {/* Login / Logout */}
+          {user?.role === 'patient' && (
+            <li><NavLink to="/mediconnectai/patient-portal" className={navItemClass}>My Health Portal</NavLink></li>
+          )}
+
           {!user ? (
-            <li><Link to="/mediconnectai/login">Login</Link></li>
+            <li className="nav-cta"><NavLink to="/mediconnectai/login" className={navItemClass}>Login</NavLink></li>
           ) : (
             <li className="user-dropdown">
               <span className="user-role">{user.role}</span>
@@ -83,53 +88,47 @@ const MediConnectNavbar = () => {
         </ul>
       </nav>
 
-      {/* Change Password Modal */}
       {showModal && (
-        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div className="modal-content" style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', width: '300px', textAlign: 'center' }}>
+        <div className="modal-overlay">
+          <div className="modal-panel">
             <h2>Change Password</h2>
-            <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <p className="modal-copy">Update your login credentials without leaving the app.</p>
+            <form onSubmit={handleChangePassword} className="modal-form">
               <input
                 type={showPasswords ? 'text' : 'password'}
-                placeholder="Old Password"
+                placeholder="Old password"
                 value={passwords.oldPassword}
                 onChange={(e) => setPasswords({ ...passwords, oldPassword: e.target.value })}
                 required
-                style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc', color: '#000' }}
               />
               <input
                 type={showPasswords ? 'text' : 'password'}
-                placeholder="New Password"
+                placeholder="New password"
                 value={passwords.newPassword}
                 onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })}
                 required
-                style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc', color: '#000' }}
               />
               <input
                 type={showPasswords ? 'text' : 'password'}
-                placeholder="Confirm New Password"
+                placeholder="Confirm new password"
                 value={passwords.confirmPassword}
                 onChange={(e) => setPasswords({ ...passwords, confirmPassword: e.target.value })}
                 required
-                style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc', color: '#000' }}
               />
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', userSelect: 'none', lineHeight: '1', textAlign: 'left', color: '#555', fontSize: '0.82rem' }}>
+              <label>
                 <input
                   type="checkbox"
                   checked={showPasswords}
-                  onChange={() => setShowPasswords(!showPasswords)}
-                  style={{ width: '14px', height: '14px', margin: '0', cursor: 'pointer', flexShrink: 0 }}
+                  onChange={() => setShowPasswords((value) => !value)}
                 />
                 Reveal password
               </label>
-              <button type="submit" style={{ padding: '10px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-                Submit
-              </button>
-              <button type="button" onClick={() => setShowModal(false)} style={{ padding: '10px', backgroundColor: '#ccc', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-                Cancel
-              </button>
+              <div className="modal-actions">
+                <button type="submit" className="btn-primary">Save changes</button>
+                <button type="button" className="btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
+              </div>
             </form>
-            {message && <p style={{ marginTop: '10px', color: message.includes('success') ? 'green' : 'red' }}>{message}</p>}
+            {message && <p className={message.includes('success') ? 'section-note' : 'login-feedback'}>{message}</p>}
           </div>
         </div>
       )}

@@ -84,7 +84,7 @@ const SharedPatientDirectory = () => {
     };
 
     fetchData();
-  }, []);
+  }, [user]);
 
   const specialtyList = analystProfile?.specialties
     ? analystProfile.specialties.split(',').map(s => s.trim()).filter(Boolean)
@@ -129,10 +129,10 @@ const SharedPatientDirectory = () => {
   });
 
   return (
-    <div className="shared-directory-container">
+    <div className="shared-directory-container page-shell">
       <div className="spd-header">
         <div>
-          <h1>📂 Shared Patient Directory</h1>
+          <h1>Shared Patient Directory</h1>
           {user?.role === 'analyst' && (
             <p className="spd-role-hint">
               Showing patients assigned to your specialties
@@ -160,25 +160,25 @@ const SharedPatientDirectory = () => {
       </div>
 
       {/* Search and Filters */}
-      <div className="spd-search-bar" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+      <div className="spd-search-bar">
         <input
           type="text"
-          placeholder="🔍  Search by name or condition..."
+          className="modern-input"
+          placeholder="Search by name or condition..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          style={{ flex: 1, minWidth: '300px' }}
         />
         <input
           type="text"
-          placeholder="💳  Search by National ID..."
+          className="modern-input"
+          placeholder="Search by National ID..."
           value={searchNationalId}
           onChange={e => setSearchNationalId(e.target.value)}
-          style={{ flex: 1, minWidth: '200px', padding: '0.8rem 1rem', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.1)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-main)', fontSize: '1rem' }}
         />
         <select
+          className="modern-input"
           value={analystFilter}
           onChange={e => setAnalystFilter(e.target.value)}
-          style={{ padding: '0.8rem 1rem', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.1)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-main)', fontSize: '1rem', minWidth: '200px' }}
         >
           <option value="All">All Patients</option>
           <option value="Unassigned">Unassigned (Action Needed)</option>
@@ -197,19 +197,19 @@ const SharedPatientDirectory = () => {
           {search ? 'No patients match your search.' : 'No shared patients available yet.'}
         </p>
       ) : (
-        <table className="patient-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Illness / Condition</th>
-              <th>Hospital</th>
-              <th>AI Specialty</th>
-              <th>Profile</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map(patient => {
-              const illness = patient.illness || patient.condition || 'N/A';
+        <div className="patient-list">
+          <div className="glass-row-header">
+            <div>Patient Identity</div>
+            <div>Primary Condition</div>
+            <div>Origin Node</div>
+            <div>AI Blueprint</div>
+            <div>Urgency</div>
+            <div>Protocol</div>
+            <div style={{textAlign: 'center'}}>Action</div>
+          </div>
+          <div className="glass-rows-container">
+            {filtered.map((patient, index) => {
+              const illness = patient.illness || patient.condition || 'Pending Assessment';
               let hospitalsList = [];
               if (Array.isArray(patient.hospitals)) {
                 hospitalsList = patient.hospitals;
@@ -220,30 +220,49 @@ const SharedPatientDirectory = () => {
               }
               const aiSuggestion = patient.suggested || 'Pending AI analysis';
               const patientId = patient._id || patient.id;
+              
+              const urgency = patient.urgency_level || 'Medium';
+              const urgencyClass = urgency === 'High' ? 'badge-high' : urgency === 'Medium' ? 'badge-medium' : 'badge-low';
+              
+              const mode = patient.recommended_mode || 'Offline';
+              const modeClass = mode === 'Online' ? 'badge-online' : 'badge-offline';
 
               return (
-                <tr key={patientId}>
-                  <td className="patient-name-cell">{patient.name}</td>
-                  <td>{illness}</td>
-                  <td>{hospitalsList.join(', ')}</td>
-                  <td>
+                <div key={patientId} className="glass-row fade-in-up" style={{ animationDelay: `${index * 0.05}s` }}>
+                  <div className="patient-name-cell">
+                    <div className="patient-avatar">
+                      {patient.name.charAt(0)}
+                    </div>
+                    {patient.name}
+                  </div>
+                  <div className="cell-text" style={{ fontWeight: '600' }}>{illness}</div>
+                  <div className="cell-text" style={{ color: 'var(--text-muted)' }}>{hospitalsList.join(', ')}</div>
+                  <div>
                     <span
                       className="specialty-pill"
                       style={{ background: getSpecialtyColor(aiSuggestion) }}
                     >
                       {aiSuggestion}
                     </span>
-                  </td>
-                  <td>
-                    <Link className="view-link" to={`/mediconnectai/patient/${patientId}`}>
-                      View →
+                  </div>
+                  <div>
+                    <span className={`status-badge ${urgencyClass}`}>{urgency}</span>
+                  </div>
+                  <div>
+                    <span className={`status-badge ${modeClass}`}>
+                      {mode === 'Online' ? '🌐 Online' : '🏥 Offline'}
+                    </span>
+                  </div>
+                  <div>
+                    <Link className="neon-link" to={`/mediconnectai/patient/${patientId}`}>
+                      Enter &rarr;
                     </Link>
-                  </td>
-                </tr>
+                  </div>
+                </div>
               );
             })}
-          </tbody>
-        </table>
+          </div>
+        </div>
       )}
 
       {!loading && !error && (

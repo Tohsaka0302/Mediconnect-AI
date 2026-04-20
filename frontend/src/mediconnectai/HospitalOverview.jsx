@@ -65,22 +65,29 @@ const HospitalOverview = () => {
   }, []);
 
   if (loading) return (
-    <div className="overview-container">
-      <h1>🏥 Hospital Data Overview</h1>
-      <p style={{ color: 'var(--text-muted)', textAlign: 'center' }}>Loading stats...</p>
+    <div className="overview-container page-shell">
+      <h1>Hospital Data Overview</h1>
+      <p className="overview-lede">Loading stats...</p>
     </div>
   );
 
   if (error) return (
-    <div className="overview-container">
-      <h1>🏥 Hospital Data Overview</h1>
-      <p style={{ color: 'var(--accent-danger)', textAlign: 'center' }}>Error: {error}</p>
+    <div className="overview-container page-shell">
+      <h1>Hospital Data Overview</h1>
+      <p className="error-state">Error: {error}</p>
     </div>
   );
 
   return (
-    <div className="overview-container">
-      <h1>🏥 Hospital Data Overview</h1>
+    <div className="overview-container page-shell">
+      <div className="page-hero">
+        <div>
+          <h1>Hospital Data Overview</h1>
+          <p className="overview-lede">
+            Track shared records, connected hospitals, and analyst distribution from one clean operational view.
+          </p>
+        </div>
+      </div>
 
       {/* Summary Cards */}
       <div className="overview-cards">
@@ -101,7 +108,7 @@ const HospitalOverview = () => {
       {/* Hospital Records Table */}
       <h2 className="section-title">Shared Records by Hospital</h2>
       {hospitalStats.length === 0 ? (
-        <p style={{ color: 'var(--text-muted)', textAlign: 'center' }}>
+        <p className="empty-state">
           No shared patients yet. Share data from a hospital to see it here.
         </p>
       ) : (

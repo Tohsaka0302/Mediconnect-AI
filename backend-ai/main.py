@@ -41,6 +41,7 @@ def startup_db_client():
     
     default_users = [
         {"email": "admin@ai.com", "password": pwd_context.hash("admin123"), "role": "admin", "name": "Admin"},
+        {"email": "patient@demo.com", "password": pwd_context.hash("patient123"), "role": "patient", "name": "Demo Patient", "national_id": "1234567890"},
     ]
     for default in default_users:
         if not users_collection.find_one({"email": default["email"]}):

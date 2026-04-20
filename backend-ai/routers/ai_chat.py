@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 import os
 import requests
+import time
 from dotenv import load_dotenv
 
 # Import the refactored schemas
@@ -10,12 +11,27 @@ router = APIRouter()
 
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_MODEL = "gemini-2.5-flash"
+
+def call_gemini(payload, retries=3):
+    """Call Gemini API with retry logic for transient 503/429 errors."""
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
+    last_res = None
+    for attempt in range(retries + 1):
+        last_res = requests.post(url, json=payload)
+        if last_res.status_code in (429, 503) and attempt < retries:
+            wait = 2 ** (attempt + 1)  # Exponential backoff: 2s, 4s, 8s
+            time.sleep(wait)
+            continue
+        last_res.raise_for_status()
+        return last_res.json()
+    last_res.raise_for_status()
+    return last_res.json()
 
 @router.post("/extract_specialty")
 def extract_specialty(data: SpecialtyExtractionInput):
-    if not GEMINI_API_KEY:
-        return {"specialty": "Internal Medicine"}
-        
+    import json as _json
+
     # The 7 canonical specialties used for analyst matching
     SPECIALTIES = [
         "Internal Medicine",
@@ -26,40 +42,71 @@ def extract_specialty(data: SpecialtyExtractionInput):
         "Radiology",
         "Anesthesiology"
     ]
-    specialties_str = ", ".join(SPECIALTIES)
-    
-    try:
-        prompt = f"""You are a medical triage AI. Given a patient's condition or illness, classify it into EXACTLY ONE of the following medical specialties:
+    URGENCY_LEVELS = ["Low", "Medium", "High"]
+    MODES = ["Online", "Offline"]
 
-{specialties_str}
+    default_response = {
+        "specialty": "Internal Medicine",
+        "urgency_level": "Medium",
+        "recommended_mode": "Offline"
+    }
+
+    if not GEMINI_API_KEY:
+        return default_response
+
+    specialties_str = ", ".join(SPECIALTIES)
+
+    try:
+        prompt = f"""You are a medical triage AI. Given a patient's condition or illness, perform THREE classifications and return the result as a JSON object (no markdown, no code fences, just raw JSON).
+
+1. **specialty** — classify into EXACTLY ONE of: {specialties_str}
+2. **urgency_level** — assess clinical urgency as exactly one of: Low, Medium, High
+   - Low: routine/chronic conditions manageable via scheduled visits (e.g., mild allergies, routine check-ups)
+   - Medium: conditions needing timely but non-emergency attention (e.g., persistent fever, moderate pain)
+   - High: acute/emergency conditions requiring immediate in-person care (e.g., chest pain, severe trauma, stroke symptoms)
+3. **recommended_mode** — recommend consultation mode as exactly one of: Online, Offline
+   - Online: condition can be safely assessed remotely (e.g., skin rashes, mild symptoms, follow-ups)
+   - Offline: condition requires physical examination or emergency care (e.g., surgery cases, high urgency)
 
 Rules:
-- You MUST return ONLY one of the specialty names listed above, word-for-word.
-- Do NOT return any other text, explanation, or specialty not in the list.
-- Pick the closest match. If truly unclear, return "Internal Medicine".
+- Return ONLY a JSON object with keys: specialty, urgency_level, recommended_mode
+- Values must be EXACTLY from the allowed lists above, word-for-word.
+- No extra text, explanation, or markdown formatting.
+- If truly unclear, default to: Internal Medicine, Medium, Offline.
 
 Patient condition: {data.condition}
 
-Answer (one specialty name only):"""
-        
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
+JSON response:"""
+
         payload = {
             "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {"temperature": 0.0}  # Zero temp for deterministic output
         }
-        res = requests.post(url, json=payload)
-        res.raise_for_status()
-        
-        raw = res.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
-        
-        # Validate the returned value is one of the allowed specialties
-        matched = next((s for s in SPECIALTIES if s.lower() == raw.lower()), None)
-        specialty = matched if matched else "Internal Medicine"
-        
-        return {"specialty": specialty}
+        result = call_gemini(payload)
+
+        raw = result["candidates"][0]["content"]["parts"][0]["text"].strip()
+
+        # Strip markdown code fences if Gemini wraps them
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
+        if raw.endswith("```"):
+            raw = raw[:-3].strip()
+
+        parsed = _json.loads(raw)
+
+        # Validate each field
+        specialty = next((s for s in SPECIALTIES if s.lower() == parsed.get("specialty", "").lower()), "Internal Medicine")
+        urgency = next((u for u in URGENCY_LEVELS if u.lower() == parsed.get("urgency_level", "").lower()), "Medium")
+        mode = next((m for m in MODES if m.lower() == parsed.get("recommended_mode", "").lower()), "Offline")
+
+        return {
+            "specialty": specialty,
+            "urgency_level": urgency,
+            "recommended_mode": mode
+        }
     except Exception as e:
         print(f"Error extracting specialty: {e}")
-        return {"specialty": "Internal Medicine"}
+        return default_response
 
 
 @router.post("/predict_treatment")
@@ -82,14 +129,12 @@ def predict_treatment(data: SymptomInput):
         Medical History: {data.history if data.history else 'None provided'}
         """
         
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
         payload = {
             "contents": [{"parts": [{"text": prompt}]}]
         }
-        res = requests.post(url, json=payload)
-        res.raise_for_status()
+        result = call_gemini(payload)
         
-        response_text = res.json()["candidates"][0]["content"]["parts"][0]["text"]
+        response_text = result["candidates"][0]["content"]["parts"][0]["text"]
         
         return {
             "patient_id": data.patient_id,
@@ -130,15 +175,13 @@ def chat_gemini(data: ChatInput):
         combined_prompt = f"{context_prompt}\n\nUser Question: {final_user_msg}"
         contents.append({"role": "user", "parts": [{"text": combined_prompt}]})
         
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
         payload = {
             "contents": contents
         }
         
-        res = requests.post(url, json=payload)
-        res.raise_for_status()
+        result = call_gemini(payload)
         
-        response_text = res.json()["candidates"][0]["content"]["parts"][0]["text"]
+        response_text = result["candidates"][0]["content"]["parts"][0]["text"]
         
         return {"response": response_text.strip()}
     except Exception as e:

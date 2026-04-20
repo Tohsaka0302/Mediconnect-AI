@@ -90,12 +90,17 @@ const ManageAnalyst = () => {
         }
     };
 
-    if (loading) return <div className="analyst-container"><p style={{ color: 'var(--text-muted)', textAlign: 'center' }}>Loading...</p></div>;
+    if (loading) return <div className="analyst-container page-shell"><p className="loading-state">Loading...</p></div>;
 
     return (
-        <div className="analyst-container">
-            <h1>👥 Manage Analysts</h1>
-            {error && <p className="analyst-error">⚠ {error}</p>}
+        <div className="analyst-container page-shell">
+            <div className="page-hero">
+                <div>
+                    <h1>Manage Analysts</h1>
+                    <p className="section-note">Create accounts, adjust specialties, and review assignment counts.</p>
+                </div>
+            </div>
+            {error && <p className="analyst-error">Alert: {error}</p>}
 
             <div className="content-wrapper">
 
