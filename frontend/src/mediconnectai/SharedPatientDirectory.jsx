@@ -43,7 +43,7 @@ const SharedPatientDirectory = () => {
     const fetchData = async () => {
       try {
         // Fetch patients (filtered by backend if analyst)
-        let fetchUrl = 'http://localhost:5000/patients';
+        let fetchUrl = '/patients';
         if (user) {
           fetchUrl += `?email=${encodeURIComponent(user.email)}&role=${encodeURIComponent(user.role)}`;
         }

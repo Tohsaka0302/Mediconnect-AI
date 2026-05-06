@@ -10,7 +10,7 @@ const ConflictReview = () => {
 
   const fetchConflicts = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/data-conflicts');
+      const res = await fetch('/api/data-conflicts');
       if (!res.ok) throw new Error('Failed to fetch conflicts');
       const data = await res.json();
       setConflicts(data);
@@ -26,7 +26,7 @@ const ConflictReview = () => {
   const handleAction = async (conflictId, action) => {
     setActionLoading(conflictId);
     try {
-      const res = await fetch(`http://localhost:5000/api/data-conflicts/${conflictId}/${action}`, {
+      const res = await fetch(`/api/data-conflicts/${conflictId}/${action}`, {
         method: 'PUT'
       });
       if (!res.ok) throw new Error('Action failed');

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import '../styles/mediconnectnavbar.css';
 import { authFetch } from '../utils/authFetch';
@@ -9,6 +9,25 @@ const MediConnectNavbar = () => {
   const [passwords, setPasswords] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
   const [message, setMessage] = useState('');
   const [showPasswords, setShowPasswords] = useState(false);
+  const [hasConflicts, setHasConflicts] = useState(false);
+
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      const checkConflicts = async () => {
+        try {
+          const res = await fetch('/api/data-conflicts');
+          if (res.ok) {
+            const data = await res.json();
+            const pending = data.some(c => c.status === 'Pending');
+            setHasConflicts(pending);
+          }
+        } catch (err) {
+          console.error('Error checking conflicts:', err);
+        }
+      };
+      checkConflicts();
+    }
+  }, [user?.role]);
 
   const handleLogout = () => {
     localStorage.removeItem('user');
@@ -66,7 +85,9 @@ const MediConnectNavbar = () => {
               <li><NavLink to="/mediconnectai/hospital-overview" className={navItemClass}>Hospital Overview</NavLink></li>
               <li><NavLink to="/mediconnectai/manage-analyst" className={navItemClass}>Manage Analysts</NavLink></li>
               <li><NavLink to="/mediconnectai/removal-requests" className={navItemClass}>Removal Requests</NavLink></li>
-              <li><NavLink to="/mediconnectai/conflict-review" className={navItemClass}>Conflict Review</NavLink></li>
+              {hasConflicts && (
+                <li><NavLink to="/mediconnectai/conflict-review" className={navItemClass}>Conflict Review</NavLink></li>
+              )}
             </>
           )}
 

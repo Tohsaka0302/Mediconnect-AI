@@ -4,7 +4,7 @@
  *
  * Usage:
  *   import { authFetch } from '../utils/authFetch';
- *   const res = await authFetch('http://localhost:8000/api/analysts');
+ *   const res = await authFetch('/api/analysts');
  */
 export const getToken = () => {
     try {

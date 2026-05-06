@@ -11,7 +11,7 @@ const MediConnectRemovalRequests = () => {
 
     const fetchRequests = () => {
         setLoading(true);
-        fetch('http://localhost:5000/api/removal-requests')
+        fetch('/api/removal-requests')
             .then(res => {
                 if (!res.ok) throw new Error('Failed to fetch requests');
                 return res.json();
@@ -41,7 +41,7 @@ const MediConnectRemovalRequests = () => {
     const handleAction = async (id, action) => {
         setActionLoading(true);
         try {
-            const res = await fetch(`http://localhost:5000/api/removal-requests/${id}/${action}`, {
+            const res = await fetch(`/api/removal-requests/${id}/${action}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' }
             });
@@ -81,7 +81,7 @@ const MediConnectRemovalRequests = () => {
         try {
             await Promise.all(pendingIds.map(async (id) => {
                 try {
-                    const res = await fetch(`http://localhost:5000/api/removal-requests/${id}/approve`, {
+                    const res = await fetch(`/api/removal-requests/${id}/approve`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' }
                     });

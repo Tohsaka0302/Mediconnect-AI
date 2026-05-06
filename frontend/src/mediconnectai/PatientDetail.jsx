@@ -23,7 +23,7 @@ const ConsultationSection = ({ patient, patientId }) => {
 
     useEffect(() => {
         if (!patient) return;
-        fetch(`http://localhost:5000/api/consultations/${patient._id || patientId}`)
+        fetch(`/api/consultations/${patient._id || patientId}`)
             .then(r => r.ok ? r.json() : [])
             .then(setConsultations)
             .catch(() => {});
@@ -32,12 +32,12 @@ const ConsultationSection = ({ patient, patientId }) => {
     const handleStatusUpdate = async (id, status) => {
         setUpdatingStatus(id);
         try {
-            await fetch(`http://localhost:5000/api/consultations/${id}/status`, {
+            await fetch(`/api/consultations/${id}/status`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status })
             });
-            const updated = await fetch(`http://localhost:5000/api/consultations/${patient._id || patientId}`);
+            const updated = await fetch(`/api/consultations/${patient._id || patientId}`);
             if (updated.ok) setConsultations(await updated.json());
         } catch (err) { console.error(err); }
         finally { setUpdatingStatus(null); }
@@ -46,7 +46,7 @@ const ConsultationSection = ({ patient, patientId }) => {
     const handleBook = async (type) => {
         setBooking(true);
         try {
-            const res = await fetch('http://localhost:5000/api/consultations', {
+            const res = await fetch('/api/consultations', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -58,7 +58,7 @@ const ConsultationSection = ({ patient, patientId }) => {
                 })
             });
             if (res.ok) {
-                const updated = await fetch(`http://localhost:5000/api/consultations/${patient._id || patientId}`);
+                const updated = await fetch(`/api/consultations/${patient._id || patientId}`);
                 if (updated.ok) setConsultations(await updated.json());
             }
         } catch (err) { console.error(err); }
@@ -68,12 +68,12 @@ const ConsultationSection = ({ patient, patientId }) => {
     const handlePay = async (consultationId) => {
         setPayingId(consultationId);
         try {
-            await fetch('http://localhost:5000/api/payment/simulate', {
+            await fetch('/api/payment/simulate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ consultation_id: consultationId })
             });
-            const updated = await fetch(`http://localhost:5000/api/consultations/${patient._id || patientId}`);
+            const updated = await fetch(`/api/consultations/${patient._id || patientId}`);
             if (updated.ok) setConsultations(await updated.json());
         } catch (err) { console.error(err); }
         finally { setPayingId(null); }
@@ -192,7 +192,7 @@ const FeedbackSection = ({ patient, patientId }) => {
 
     useEffect(() => {
         if (!patient) return;
-        fetch(`http://localhost:5000/api/feedback/${patient._id || patientId}`)
+        fetch(`/api/feedback/${patient._id || patientId}`)
             .then(r => r.ok ? r.json() : [])
             .then(setFeedbackList)
             .catch(() => {});
@@ -202,7 +202,7 @@ const FeedbackSection = ({ patient, patientId }) => {
         e.preventDefault();
         setSubmitting(true);
         try {
-            const res = await fetch('http://localhost:5000/api/feedback', {
+            const res = await fetch('/api/feedback', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -216,7 +216,7 @@ const FeedbackSection = ({ patient, patientId }) => {
                 setComment('');
                 setRating(5);
                 // Refresh list
-                const updated = await fetch(`http://localhost:5000/api/feedback/${patient._id || patientId}`);
+                const updated = await fetch(`/api/feedback/${patient._id || patientId}`);
                 if (updated.ok) setFeedbackList(await updated.json());
             }
         } catch (err) { console.error(err); }
@@ -308,7 +308,7 @@ const AnalystNotesSection = ({ patient, patientId }) => {
 
     useEffect(() => {
         if (!patient) return;
-        fetch(`http://localhost:5000/api/analyst-notes/${patient._id || patientId}`)
+        fetch(`/api/analyst-notes/${patient._id || patientId}`)
             .then(r => r.ok ? r.json() : [])
             .then(setNotesList)
             .catch(() => {});
@@ -318,7 +318,7 @@ const AnalystNotesSection = ({ patient, patientId }) => {
         e.preventDefault();
         setSubmitting(true);
         try {
-            const res = await fetch('http://localhost:5000/api/analyst-notes', {
+            const res = await fetch('/api/analyst-notes', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -330,7 +330,7 @@ const AnalystNotesSection = ({ patient, patientId }) => {
             });
             if (res.ok) {
                 setNote('');
-                const updated = await fetch(`http://localhost:5000/api/analyst-notes/${patient._id || patientId}`);
+                const updated = await fetch(`/api/analyst-notes/${patient._id || patientId}`);
                 if (updated.ok) setNotesList(await updated.json());
             }
         } catch (err) { console.error(err); }
@@ -405,10 +405,17 @@ const PatientDetail = () => {
     const [aiError, setAiError] = useState(null);
     const [activeHospital, setActiveHospital] = useState(null);
     const [aiNotes, setAiNotes] = useState([]);
+    const [isEditingTriage, setIsEditingTriage] = useState(false);
+    const [triageData, setTriageData] = useState({ suggested: '', urgency_level: '', recommended_mode: '' });
+    const [isSavingTriage, setIsSavingTriage] = useState(false);
+
+    const SPECIALTIES = ["Internal Medicine", "Pediatrics", "Family Medicine", "Surgery", "Psychiatry", "Radiology", "Anesthesiology"];
+    const URGENCY_LEVELS = ["Low", "Medium", "High"];
+    const MODES = ["Online", "Offline"];
 
     useEffect(() => {
         if (!patient) return;
-        fetch(`http://localhost:5000/api/ai-notes/${patient._id || id}`)
+        fetch(`/api/ai-notes/${patient._id || id}`)
             .then(r => r.ok ? r.json() : [])
             .then(setAiNotes)
             .catch(() => {});
@@ -416,11 +423,34 @@ const PatientDetail = () => {
 
     const handleDeleteAiNote = async (noteId) => {
         try {
-            const res = await fetch(`http://localhost:5000/api/ai-notes/${noteId}`, { method: 'DELETE' });
+            const res = await fetch(`/api/ai-notes/${noteId}`, { method: 'DELETE' });
             if (res.ok) {
                 setAiNotes(prev => prev.filter(n => n._id !== noteId));
             }
         } catch (err) {}
+    };
+
+    const handleSaveTriage = async () => {
+        setIsSavingTriage(true);
+        try {
+            const res = await fetch(`/api/patients/${patient._id || id}/triage`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(triageData)
+            });
+            if (res.ok) {
+                const updated = await res.json();
+                setPatient(updated);
+                setIsEditingTriage(false);
+            } else {
+                alert('Failed to save triage data.');
+            }
+        } catch (err) {
+            console.error('Save triage error:', err);
+            alert('Service error while saving triage.');
+        } finally {
+            setIsSavingTriage(false);
+        }
     };
 
     const generateAiRecommendation = async () => {
@@ -437,7 +467,7 @@ const PatientDetail = () => {
             }
 
             try {
-                const notesRes = await fetch(`http://localhost:5000/api/analyst-notes/${patient._id || id}`);
+                const notesRes = await fetch(`/api/analyst-notes/${patient._id || id}`);
                 if (notesRes.ok) {
                     const notesData = await notesRes.json();
                     if (notesData.length > 0) {
@@ -446,7 +476,7 @@ const PatientDetail = () => {
                 }
             } catch(e) {}
 
-            const res = await fetch('http://localhost:8001/predict_treatment', {
+            const res = await fetch('/predict_treatment', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -465,7 +495,7 @@ const PatientDetail = () => {
             sessionStorage.setItem(`ai_chat_${patient._id}`, JSON.stringify(newHistory));
 
             try {
-                const saveRes = await fetch('http://localhost:5000/api/ai-notes', {
+                const saveRes = await fetch('/api/ai-notes', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -475,7 +505,7 @@ const PatientDetail = () => {
                     })
                 });
                 if (saveRes.ok) {
-                    const updatedNotes = await fetch(`http://localhost:5000/api/ai-notes/${patient._id || id}`);
+                    const updatedNotes = await fetch(`/api/ai-notes/${patient._id || id}`);
                     if (updatedNotes.ok) setAiNotes(await updatedNotes.json());
                 }
             } catch (saveErr) {}
@@ -504,7 +534,7 @@ const PatientDetail = () => {
             }
 
             try {
-                const notesRes = await fetch(`http://localhost:5000/api/analyst-notes/${patient._id || id}`);
+                const notesRes = await fetch(`/api/analyst-notes/${patient._id || id}`);
                 if (notesRes.ok) {
                     const notesData = await notesRes.json();
                     if (notesData.length > 0) {
@@ -513,7 +543,7 @@ const PatientDetail = () => {
                 }
             } catch(e) {}
 
-            const res = await fetch('http://localhost:8001/chat_gemini', {
+            const res = await fetch('/chat_gemini', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ patient_id: patient._id?.toString() || id, symptoms, history, messages: newHistory })
@@ -534,7 +564,7 @@ const PatientDetail = () => {
     };
 
     useEffect(() => {
-        fetch(`http://localhost:5000/patients/${id}`)
+        fetch(`/patients/${id}`)
             .then(res => { if (!res.ok) throw new Error('Patient record not found'); return res.json(); })
             .then(data => {
                 setPatient(data);
@@ -633,31 +663,98 @@ const PatientDetail = () => {
                 </div>
                 <div style={{ flex: '1', minWidth: '160px' }}>
                     <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: '600', textTransform: 'uppercase', marginBottom: '6px' }}>AI Specialty</p>
-                    <div style={{
-                        display: 'inline-block', padding: '6px 16px',
-                        background: 'var(--gradient-primary)', borderRadius: '20px',
-                        color: 'white', fontWeight: '600', fontSize: '0.9rem'
-                    }}>{patient.suggested || 'Pending'}</div>
+                    {isEditingTriage ? (
+                        <select 
+                            value={triageData.suggested} 
+                            onChange={e => setTriageData({...triageData, suggested: e.target.value})}
+                            style={{ padding: '6px 12px', background: 'rgba(0,0,0,0.4)', color: 'white', borderRadius: '8px', border: '1px solid var(--accent-primary)', outline: 'none', fontSize: '0.9rem', width: '100%' }}
+                        >
+                            {SPECIALTIES.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                    ) : (
+                        <div style={{
+                            display: 'inline-block', padding: '6px 16px',
+                            background: 'var(--gradient-primary)', borderRadius: '20px',
+                            color: 'white', fontWeight: '600', fontSize: '0.9rem'
+                        }}>{patient.suggested || 'Pending'}</div>
+                    )}
                 </div>
                 <div style={{ flex: '1', minWidth: '120px' }}>
                     <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: '600', textTransform: 'uppercase', marginBottom: '6px' }}>Urgency</p>
-                    <div style={{
-                        display: 'inline-block', padding: '6px 16px',
-                        background: (patient.urgency_level || 'Medium') === 'High' ? '#ef4444' : (patient.urgency_level || 'Medium') === 'Medium' ? '#f59e0b' : '#22c55e',
-                        borderRadius: '20px', color: 'white', fontWeight: '600', fontSize: '0.9rem'
-                    }}>{patient.urgency_level || 'Medium'}</div>
+                    {isEditingTriage ? (
+                        <select 
+                            value={triageData.urgency_level} 
+                            onChange={e => setTriageData({...triageData, urgency_level: e.target.value})}
+                            style={{ padding: '6px 12px', background: 'rgba(0,0,0,0.4)', color: 'white', borderRadius: '8px', border: '1px solid var(--accent-primary)', outline: 'none', fontSize: '0.9rem', width: '100%' }}
+                        >
+                            {URGENCY_LEVELS.map(u => <option key={u} value={u}>{u}</option>)}
+                        </select>
+                    ) : (
+                        <div style={{
+                            display: 'inline-block', padding: '6px 16px',
+                            background: (patient.urgency_level || 'Medium') === 'High' ? '#ef4444' : (patient.urgency_level || 'Medium') === 'Medium' ? '#f59e0b' : '#22c55e',
+                            borderRadius: '20px', color: 'white', fontWeight: '600', fontSize: '0.9rem'
+                        }}>{patient.urgency_level || 'Medium'}</div>
+                    )}
                 </div>
                 <div style={{ flex: '1', minWidth: '120px' }}>
                     <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: '600', textTransform: 'uppercase', marginBottom: '6px' }}>Mode</p>
-                    <div style={{
-                        display: 'inline-block', padding: '6px 16px',
-                        background: (patient.recommended_mode || 'Offline') === 'Online' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(156, 163, 175, 0.2)',
-                        border: (patient.recommended_mode || 'Offline') === 'Online' ? '1px solid #3b82f6' : '1px solid #6b7280',
-                        borderRadius: '20px',
-                        color: (patient.recommended_mode || 'Offline') === 'Online' ? '#60a5fa' : '#9ca3af',
-                        fontWeight: '600', fontSize: '0.9rem'
-                    }}>{(patient.recommended_mode || 'Offline') === 'Online' ? '🌐 Online' : '🏥 Offline'}</div>
+                    {isEditingTriage ? (
+                        <select 
+                            value={triageData.recommended_mode} 
+                            onChange={e => setTriageData({...triageData, recommended_mode: e.target.value})}
+                            style={{ padding: '6px 12px', background: 'rgba(0,0,0,0.4)', color: 'white', borderRadius: '8px', border: '1px solid var(--accent-primary)', outline: 'none', fontSize: '0.9rem', width: '100%' }}
+                        >
+                            {MODES.map(m => <option key={m} value={m}>{m}</option>)}
+                        </select>
+                    ) : (
+                        <div style={{
+                            display: 'inline-block', padding: '6px 16px',
+                            background: (patient.recommended_mode || 'Offline') === 'Online' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(156, 163, 175, 0.2)',
+                            border: (patient.recommended_mode || 'Offline') === 'Online' ? '1px solid #3b82f6' : '1px solid #6b7280',
+                            borderRadius: '20px',
+                            color: (patient.recommended_mode || 'Offline') === 'Online' ? '#60a5fa' : '#9ca3af',
+                            fontWeight: '600', fontSize: '0.9rem'
+                        }}>{(patient.recommended_mode || 'Offline') === 'Online' ? '🌐 Online' : '🏥 Offline'}</div>
+                    )}
                 </div>
+
+                {/* Edit Controls for Analysts */}
+                {userRole !== 'patient' && (
+                    <div style={{ alignSelf: 'center', marginLeft: '10px' }}>
+                        {isEditingTriage ? (
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <button 
+                                    onClick={handleSaveTriage} 
+                                    disabled={isSavingTriage}
+                                    style={{ padding: '8px 16px', background: '#22c55e', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '0.85rem' }}
+                                >
+                                    {isSavingTriage ? '...' : 'Save'}
+                                </button>
+                                <button 
+                                    onClick={() => setIsEditingTriage(false)} 
+                                    style={{ padding: '8px 16px', background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '0.85rem' }}
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        ) : (
+                            <button 
+                                onClick={() => {
+                                    setTriageData({
+                                        suggested: patient.suggested || 'Internal Medicine',
+                                        urgency_level: patient.urgency_level || 'Medium',
+                                        recommended_mode: patient.recommended_mode || 'Offline'
+                                    });
+                                    setIsEditingTriage(true);
+                                }} 
+                                style={{ padding: '8px 16px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-muted)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem' }}
+                            >
+                                ✎ Edit Triage
+                            </button>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* ---- Dual Column Dashboard Layout ---- */}

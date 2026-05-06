@@ -45,10 +45,10 @@ const PatientPortal = () => {
     const fetchData = async () => {
       try {
         const [patientRes, feedbackRes, consultRes, notesRes] = await Promise.all([
-          fetch(`http://localhost:5000/api/patient-portal/${encodeURIComponent(nationalId)}`),
-          fetch(`http://localhost:5000/api/feedback/${encodeURIComponent(nationalId)}`),
-          fetch(`http://localhost:5000/api/consultations/${encodeURIComponent(nationalId)}`),
-          fetch(`http://localhost:5000/api/analyst-notes/${encodeURIComponent(nationalId)}`),
+          fetch(`/api/patient-portal/${encodeURIComponent(nationalId)}`),
+          fetch(`/api/feedback/${encodeURIComponent(nationalId)}`),
+          fetch(`/api/consultations/${encodeURIComponent(nationalId)}`),
+          fetch(`/api/analyst-notes/${encodeURIComponent(nationalId)}`),
         ]);
 
         if (!patientRes.ok) throw new Error('No medical record found for your National ID.');
@@ -108,7 +108,7 @@ const PatientPortal = () => {
           .join(' | ')}]`;
       }
 
-      const res = await fetch('http://localhost:8001/chat_gemini', {
+      const res = await fetch('/chat_gemini', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -138,7 +138,7 @@ const PatientPortal = () => {
     setSubmitting(true);
 
     try {
-      const res = await fetch('http://localhost:5000/api/feedback', {
+      const res = await fetch('/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -155,7 +155,7 @@ const PatientPortal = () => {
       setRating(0);
       setComment('');
 
-      const updatedFeedback = await fetch(`http://localhost:5000/api/feedback/${encodeURIComponent(nationalId)}`);
+      const updatedFeedback = await fetch(`/api/feedback/${encodeURIComponent(nationalId)}`);
       if (updatedFeedback.ok) setFeedbackList(await updatedFeedback.json());
 
       setTimeout(() => setFeedbackSuccess(false), 3000);
@@ -168,7 +168,7 @@ const PatientPortal = () => {
 
   const handleBookConsultation = async (type) => {
     try {
-      const res = await fetch('http://localhost:5000/api/consultations', {
+      const res = await fetch('/api/consultations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -182,7 +182,7 @@ const PatientPortal = () => {
 
       if (!res.ok) throw new Error('Failed to book consultation');
 
-      const updated = await fetch(`http://localhost:5000/api/consultations/${encodeURIComponent(nationalId)}`);
+      const updated = await fetch(`/api/consultations/${encodeURIComponent(nationalId)}`);
       if (updated.ok) setConsultations(await updated.json());
     } catch (err) {
       alert(err.message);
@@ -192,12 +192,12 @@ const PatientPortal = () => {
   const handleStatusUpdate = async (id, status) => {
     setUpdatingStatus(id);
     try {
-      await fetch(`http://localhost:5000/api/consultations/${id}/status`, {
+      await fetch(`/api/consultations/${id}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
       });
-      const updated = await fetch(`http://localhost:5000/api/consultations/${encodeURIComponent(nationalId)}`);
+      const updated = await fetch(`/api/consultations/${encodeURIComponent(nationalId)}`);
       if (updated.ok) setConsultations(await updated.json());
     } catch (err) {
       alert(err.message);
@@ -209,14 +209,14 @@ const PatientPortal = () => {
   const handlePayment = async (consultationId) => {
     setPayingId(consultationId);
     try {
-      const res = await fetch('http://localhost:5000/api/payment/simulate', {
+      const res = await fetch('/api/payment/simulate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ consultation_id: consultationId }),
       });
       if (!res.ok) throw new Error('Payment failed');
 
-      const updated = await fetch(`http://localhost:5000/api/consultations/${encodeURIComponent(nationalId)}`);
+      const updated = await fetch(`/api/consultations/${encodeURIComponent(nationalId)}`);
       if (updated.ok) setConsultations(await updated.json());
     } catch (err) {
       alert(err.message);

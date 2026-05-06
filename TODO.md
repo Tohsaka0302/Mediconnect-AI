@@ -11,8 +11,8 @@
 - [x] **Update Gemini Prompt (`ai_chat.py`):** Modify the specialty extraction prompt to also suggest `urgency_level` and `recommended_mode` (Online/Offline) based on symptoms.
 - [x] **Data Mapping:** Categorize common symptoms in the prompt logic (e.g., "Fever" -> Online, "Chest Pain" -> Offline).
 
-### 3. Core Logic & Flow (backend-node)
-- [x] **Deduplication Audit:** Ensure `national_id` merging logic in `index.js` correctly handles conflicting data fields from different hospitals.
+### 3. Core Logic & Flow (backend-ai)
+- [x] **Deduplication Audit:** Ensure `national_id` merging logic in FastAPI correctly handles conflicting data fields from different hospitals.
 - [x] **Payment Mock-up:** Implement a simple `/api/payment/simulate` endpoint that updates `payment_status` to "Paid".
 - [x] **Feedback Endpoint:** Create a route to receive and store patient ratings/comments.
 

@@ -1,11 +1,11 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import analysts, users, auth, ai_chat
+from routers import analysts, users, auth, ai_chat, core
 import os
-from dotenv import load_dotenv
 import google.generativeai as genai
-
-load_dotenv()
 
 app = FastAPI()
 
@@ -31,21 +31,26 @@ app.include_router(analysts.router, prefix="/api")
 app.include_router(users.router, prefix="/api")
 app.include_router(auth.router, prefix="/api")
 app.include_router(ai_chat.router)
+app.include_router(core.router)
 
 @app.on_event("startup")
 def startup_db_client():
     import database
     from passlib.context import CryptContext
-    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-    users_collection = database.db["users"]
-    
-    default_users = [
-        {"email": "admin@ai.com", "password": pwd_context.hash("admin123"), "role": "admin", "name": "Admin"},
-        {"email": "patient@demo.com", "password": pwd_context.hash("patient123"), "role": "patient", "name": "Demo Patient", "national_id": "1234567890"},
-    ]
-    for default in default_users:
-        if not users_collection.find_one({"email": default["email"]}):
-            users_collection.insert_one(default)
+    try:
+        core.ensure_indexes()
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        users_collection = database.db["users"]
+        
+        default_users = [
+            {"email": "admin@ai.com", "password": pwd_context.hash("admin123"), "role": "admin", "name": "Admin"},
+            {"email": "patient@demo.com", "password": pwd_context.hash("patient123"), "role": "patient", "name": "Demo Patient", "national_id": "1234567890"},
+        ]
+        for default in default_users:
+            if not users_collection.find_one({"email": default["email"]}):
+                users_collection.insert_one(default)
+    except Exception as exc:
+        print(f"MongoDB startup setup failed: {exc}")
 
 
 

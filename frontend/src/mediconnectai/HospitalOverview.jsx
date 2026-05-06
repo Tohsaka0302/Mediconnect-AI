@@ -12,8 +12,8 @@ const HospitalOverview = () => {
     const fetchStats = async () => {
       try {
         const [patientsRes, analystRes] = await Promise.all([
-          fetch('http://localhost:5000/patients'),
-          fetch('http://localhost:5000/api/analyst-stats')
+          fetch('/patients'),
+          fetch('/api/analyst-stats')
         ]);
 
         if (!patientsRes.ok) throw new Error('Failed to fetch patients');
